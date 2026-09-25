@@ -1296,6 +1296,58 @@
     to { transform: translateX(-50%); }
   }
 
+
+  /* ===== Ajustes: agendamentos compactos, veículos em grelha 3x2 ===== */
+  #agendamentos-body.paged-2 {
+    grid-template-rows: repeat(2, auto);
+    align-content: start;
+  }
+  #agendamentos-body .c2-event-row { padding: 0.5em 0.8em; gap: 0.7em; }
+  #agendamentos-body .event-content { gap: 0.3em; }
+  #agendamentos-body .event-title { font-size: 1.1em; line-height: 1.22; }
+  #agendamentos-body .event-icon-box { width: 2em; height: 2em; }
+  #agendamentos-body .event-foot { flex-direction: row; align-items: center; gap: 0.4em; font-size: 0.85em; }
+  #agendamentos-body .c2-tag .meios-thumb { height: 1.9em; width: 3em; }
+
+  #veiculos-body {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    overflow: hidden;
+  }
+  #veiculos-body > .empty-state { grid-column: 1 / -1; grid-row: 1 / -1; }
+  #veiculos-body .c2-veic-card {
+    padding: 6px 9px;
+    gap: 9px;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    border-left-width: 3px;
+  }
+  #veiculos-body .veic-crest { width: 32px; height: 32px; font-size: 13px; }
+  #veiculos-body .veic-crest.has-photo { width: 52px; height: 32px; }
+  #veiculos-body .veic-body { padding-left: 9px; padding-right: 0; min-width: 0; }
+  #veiculos-body .veic-title-row { gap: 6px; flex-wrap: wrap; }
+  #veiculos-body .veic-id { font-size: 12px; }
+  #veiculos-body .veic-status-badge { font-size: 7.5px; padding: 1px 6px; }
+  #veiculos-body .veic-corner {
+    position: static;
+    flex-direction: row;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 2px;
+  }
+  #veiculos-body .veic-obs {
+    font-size: 9.5px;
+    margin-top: 2px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
   @media (max-width: 1024px) {
     /* Abaixo deste ponto os 4 painéis deixam de caber lado a lado em 2x2 e
        passam a ficar todos empilhados numa só coluna. Isso não cabe numa
@@ -1367,21 +1419,6 @@
   <main class="c2-grid">
     <!-- LEFT COLUMN -->
     <div class="grid-col">
-      <!-- 1. AGENDAMENTOS -->
-      <section class="c2-panel" id="panel-agendamentos">
-        <div class="c2-panel-head">
-          <div class="panel-title-wrap">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/></svg>
-            <h2>Agendamentos & Informações</h2>
-          </div>
-          <div class="panel-meta" id="agendamentos-meta"></div>
-        </div>
-        <div class="rotate-bar" id="rot-agendamentos"><span></span></div>
-        <div class="c2-panel-body paged-2 no-scrollbar" id="agendamentos-body">
-          <div class="empty-state">A carregar dados operacionais…</div>
-        </div>
-      </section>
-
       <!-- 2. CANAIS & TEATROS -->
       <section class="c2-panel" id="panel-canais">
         <div class="c2-panel-head">
@@ -1394,6 +1431,21 @@
         <div class="rotate-bar" id="rot-canais"><span></span></div>
         <div class="c2-panel-body paged-2 no-scrollbar" id="canais-body">
           <div class="empty-state">A sincronizar rede de rádio…</div>
+        </div>
+      </section>
+
+      <!-- 1. AGENDAMENTOS -->
+      <section class="c2-panel" id="panel-agendamentos">
+        <div class="c2-panel-head">
+          <div class="panel-title-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/></svg>
+            <h2>Agendamentos & Informações</h2>
+          </div>
+          <div class="panel-meta" id="agendamentos-meta"></div>
+        </div>
+        <div class="rotate-bar" id="rot-agendamentos"><span></span></div>
+        <div class="c2-panel-body paged-2 no-scrollbar" id="agendamentos-body">
+          <div class="empty-state">A carregar dados operacionais…</div>
         </div>
       </section>
     </div>
@@ -1462,7 +1514,7 @@ const GID_VEICULOS     = 171672820;   // folha "Veículos"
 
 const PAGE_SIZE_AGENDAMENTOS = 2;
 const PAGE_SIZE_CANAIS       = 2;
-const PAGE_SIZE_VEICULOS     = 3;
+const PAGE_SIZE_VEICULOS     = 6;   // grelha 3 linhas x 2 colunas
 
 const ROTATE_MS   = 30000;   // rodar ecrãs a cada 30 segundos
 const REFRESH_MS  = 15000;   // reler folhas
@@ -1895,7 +1947,7 @@ function renderAgendamentos(){
 
     const footHtml = (data || hora) ? `
       <div class="event-foot">
-        ${data ? `<span class="dt-item">${SVG_CAL_MINI}${escapeHtml(data)}${ateLabel ? `<span class="dt-until">${escapeHtml(ateLabel)}</span>` : ''}</span>` : ''}
+        ${(ateLabel || data) ? `<span class="dt-item">${SVG_CAL_MINI}${escapeHtml(ateLabel || data)}</span>` : ''}
         ${hora ? `<span class="dt-item">${SVG_CLOCK_MINI}${escapeHtml(hora)}</span>` : ''}
       </div>` : '';
 
@@ -1944,15 +1996,16 @@ function layoutRadios(root){
     const maxW = cellH * (low ? 5 : 3);                       // proporção máxima de um ecrã largo
     grid.style.setProperty('--maxw', maxW + 'px');
     // nome do canal: letra pequena (deixa o espaço para o valor), proporcional à altura de cada ecrã
-    grid.style.setProperty('--lab', Math.max(8, Math.min(22, 6 + cellH * 0.06)) + 'px');
+    grid.style.setProperty('--lab', Math.max(8, Math.min(12, 6 + cellH * 0.04)) + 'px');
     const cellW = Math.min(maxW, (grid.clientWidth - gapX * (cols - 1)) / cols);
     const f = low
-      ? Math.max(8, Math.min(cellH / 3.2, cellW / 9, 30))
-      : Math.max(10, Math.min(cellH / 6.6, cellW / 11, 44));
+      ? Math.max(8, Math.min(cellH / 3.6, cellW / 10, 16))
+      : Math.max(9, Math.min(cellH / 8, cellW / 13, 20));
     radios.forEach(r => { r.style.fontSize = f + 'px'; });
   });
 }
 
+const RADIO_MAX_PX = 22;   // tamanho máximo da letra dos canais rádio
 function fitRadioValues(root){
   // barra de estado: se o nome do canal ficar cortado, usa a versão compacta
   root.querySelectorAll('.rs-net').forEach(net => {
@@ -1966,7 +2019,7 @@ function fitRadioValues(root){
     if(!val) return;
     val.style.overflowWrap = 'normal';
     const fits = () => main.scrollWidth <= main.clientWidth + 1 && main.scrollHeight <= main.clientHeight + 1;
-    let lo = 8, hi = Math.max(lo, main.clientHeight * 0.72);
+    let lo = 8, hi = Math.max(lo, Math.min(main.clientHeight * 0.42, RADIO_MAX_PX));
     val.style.fontSize = hi + 'px';
     if(fits()) return;
     for(let i = 0; i < 9; i++){
@@ -2105,13 +2158,13 @@ function renderVeiculos(){
         <div class="veic-body">
           <div class="veic-title-row">
             <span class="veic-id">${escapeHtml(tipologia)}</span>
+            <span class="veic-status-badge">INOP</span>
           </div>
-          ${obs ? `<div class="veic-obs">${escapeHtml(obs)}</div>` : ''}
-        </div>
-        <div class="veic-corner">
-          <span class="veic-status-badge">INOP</span>
-          ${dataInop ? `<span class="veic-date-stamp">${escapeHtml(dataInop)}${horaInop ? ' · ' + escapeHtml(horaInop) : ''}</span>` : ''}
-          ${elapsed ? `<span class="veic-elapsed">${elapsed}</span>` : ''}
+          <div class="veic-corner">
+            ${dataInop ? `<span class="veic-date-stamp">${escapeHtml(dataInop)}${horaInop ? ' · ' + escapeHtml(horaInop) : ''}</span>` : ''}
+            ${elapsed ? `<span class="veic-elapsed">${elapsed}</span>` : ''}
+          </div>
+          ${obs ? `<div class="veic-obs" title="${escapeHtml(obs)}">${escapeHtml(obs)}</div>` : ''}
         </div>
       </div>
     `;
