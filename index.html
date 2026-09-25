@@ -1453,11 +1453,12 @@
 <script>
 /* ==================== CONFIG ==================== */
 const SHEET_COMANDO_ID = '1XPVKo_d35yV3k4C1CF82wL43m0ku-wvkcksmcG5CfnQ';
-const SHEET_OPTEL_ID   = '1HIv7UBEkj3quF8gL0rZQk1_bC9vqthlyjFcWB27L3k4';
+// Google Sheets OPTEL_Veiculos (folhas "Canais Radio" e "Veículos")
+const SHEET_OPTEL_ID   = '13xtfCezanpDdvjd2cACrK9gIj3Dt12m-YHTnRzVlYOA';
 const GID_AGENDAMENTOS = 0;
 const GID_COMUNICACOES = 1492833476;
-const GID_CANAIS       = 0;
-const GID_VEICULOS     = 2131018785;
+const GID_CANAIS       = 752912776;   // folha "Canais Radio"
+const GID_VEICULOS     = 171672820;   // folha "Veículos"
 
 const PAGE_SIZE_AGENDAMENTOS = 2;
 const PAGE_SIZE_CANAIS       = 2;
@@ -1504,7 +1505,7 @@ function parseCSV(str){
   if(field.length || row.length){ row.push(field); rows.push(row); }
   if(!rows.length) return [];
   const norm = (s) => (s || '').normalize('NFC').trim();
-  const headers = rows[0].map(h => norm(h));
+  const headers = dedupeHeaders(rows[0].map(h => norm(h)));
   return rows.slice(1)
     .filter(r => r.some(c => c && c.trim() !== ''))
     .map(r => {
@@ -1512,6 +1513,14 @@ function parseCSV(str){
       headers.forEach((h, idx) => obj[h] = norm(r[idx]));
       return obj;
     });
+}
+// Cabeçalhos repetidos (ex.: duas colunas "Hora") ficam "Hora", "Hora (2)", … para não se sobreporem
+function dedupeHeaders(headers){
+  const seen = {};
+  return headers.map(h => {
+    if(!(h in seen)){ seen[h] = 1; return h; }
+    seen[h]++; return `${h} (${seen[h]})`;
+  });
 }
 
 async function fetchSheet(id, gid){
@@ -2087,7 +2096,9 @@ function renderVeiculos(){
     const crestInner = photo
       ? `<img src="${photo}" alt="${escapeHtml(tipologia)}">`
       : vehicleIcon(tipologia);
-    const elapsed = formatElapsedSince(row['Data']);
+    const dataInop = findCol(row, ['data', 'inop']) || row['Data'] || '';
+    const horaInop = row['Hora'] || '';
+    const elapsed = formatElapsedSince(dataInop);
     return `
       <div class="c2-veic-card">
         <div class="veic-crest ${photo ? 'has-photo' : ''}">${crestInner}</div>
@@ -2099,7 +2110,7 @@ function renderVeiculos(){
         </div>
         <div class="veic-corner">
           <span class="veic-status-badge">INOP</span>
-          ${row['Data'] ? `<span class="veic-date-stamp">${row['Data']}</span>` : ''}
+          ${dataInop ? `<span class="veic-date-stamp">${escapeHtml(dataInop)}${horaInop ? ' · ' + escapeHtml(horaInop) : ''}</span>` : ''}
           ${elapsed ? `<span class="veic-elapsed">${elapsed}</span>` : ''}
         </div>
       </div>
