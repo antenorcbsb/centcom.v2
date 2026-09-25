@@ -83,7 +83,7 @@
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: center;
     column-gap: 16px;
-    padding: 9px 22px;
+    padding: 4px 18px;
     background: linear-gradient(90deg, rgba(17, 26, 46, 0.9) 0%, rgba(10, 16, 29, 0.96) 60%, rgba(17, 26, 46, 0.9) 100%);
     backdrop-filter: blur(12px);
     border: 1px solid var(--border-subtle);
@@ -106,8 +106,8 @@
   }
 
   .tac-crest {
-    width: 60px;
-    height: 60px;
+    width: 44px;
+    height: 44px;
     border-radius: 12px;
     background: radial-gradient(circle at 30% 20%, #24344e 0%, #101a2c 70%);
     border: 1px solid rgba(56, 189, 248, 0.28);
@@ -132,7 +132,7 @@
 
   .brand-meta h1 {
     margin: 0;
-    font-size: 26px;
+    font-size: 20px;
     font-weight: 800;
     letter-spacing: 0.3px;
     display: flex;
@@ -172,8 +172,8 @@
   .brand-group { justify-self: start; }
   .brand-meta { text-align: center; min-width: 0; }
   .brand-meta p {
-    margin: 4px 0 0 0;
-    font-size: 13.2px;
+    margin: 2px 0 0 0;
+    font-size: 11px;
     color: var(--text-secondary);
     font-weight: 500;
     letter-spacing: 0.4px;
@@ -204,7 +204,7 @@
     gap: 12px;
   }
   .cal-tile {
-    width: 54px;
+    width: 44px;
     border-radius: 10px;
     overflow: hidden;
     display: flex;
@@ -218,10 +218,10 @@
     background: linear-gradient(180deg, #0ea5e9, #0369a1);
     color: #fff;
     font-family: var(--font-mono);
-    font-size: 11px;
+    font-size: 9.5px;
     font-weight: 800;
     letter-spacing: 1.2px;
-    padding: 3px 0;
+    padding: 2px 0;
     text-transform: uppercase;
   }
   .cal-day {
@@ -230,7 +230,7 @@
     align-items: center;
     justify-content: center;
     font-family: var(--font-mono);
-    font-size: 24px;
+    font-size: 19px;
     font-weight: 800;
     color: #fff;
     line-height: 1;
@@ -247,7 +247,7 @@
     align-items: flex-start;
     gap: 7px;
     font-family: var(--font-mono);
-    font-size: 32px;
+    font-size: 24px;
     font-weight: 700;
     letter-spacing: 1px;
     color: #ffffff;
@@ -256,7 +256,7 @@
   }
   .tac-clock .time .colon { color: var(--tac-blue); animation: clock-blink 1s steps(2, start) infinite; }
   .tac-clock .time .sec {
-    font-size: 13px;
+    font-size: 10.5px;
     font-weight: 700;
     letter-spacing: 0.5px;
     color: var(--tac-blue);
@@ -271,7 +271,7 @@
     align-items: center;
     gap: 8px;
     font-family: var(--font-mono);
-    font-size: 12px;
+    font-size: 10.5px;
     letter-spacing: 1.4px;
     color: var(--text-secondary);
     text-transform: uppercase;
@@ -348,7 +348,7 @@
     border-radius: var(--radius-md);
   }
   .meteo-now-desc {
-    font-size: 10.6px;
+    font-size: 9.3px;
     font-weight: 600;
     color: var(--text-primary);
   }
@@ -357,8 +357,8 @@
     background: var(--border-subtle);
   }
   .meteo-now-bar .meteo-now-stats { gap: 8px; }
-  .meteo-now-bar .meteo-head-icon { font-size: 14px; }
-  .meteo-now-bar .meteo-head-temp { font-size: 13px; }
+  .meteo-now-bar .meteo-head-icon { font-size: 12.3px; }
+  .meteo-now-bar .meteo-head-temp { font-size: 11.4px; }
   .meteo-now-bar .meteo-head-divider { height: 12px; }
 
   /* [2] Caixa do tempo em destaque quando há aviso IPMA ativo */
@@ -369,7 +369,7 @@
   .meteo-now-bar.alert-red    { border-color: #f43f5e; background: rgba(244,63,94,0.16); animation: alert-pulse-red 1.1s ease-in-out infinite; }
   .meteo-now-bar[class*="alert-"] .meteo-now-alert {
     display: inline-flex; align-items: center; gap: 5px;
-    font-family: var(--font-mono); font-size: 10px; font-weight: 800;
+    font-family: var(--font-mono); font-size: 8.8px; font-weight: 800;
     text-transform: uppercase; letter-spacing: 0.4px;
     padding: 2px 8px; border-radius: 999px; color: #0b1220;
   }
@@ -387,7 +387,7 @@
   }
   .veic-summary:empty { display: none; }
   .veic-sum-chip {
-    font-family: var(--font-mono); font-size: 10.4px; font-weight: 600;
+    font-family: var(--font-mono); font-size: 9.2px; font-weight: 600;
     color: var(--text-secondary);
     padding: 2px 9px; border-radius: 999px;
     background: var(--tac-red-bg); border: 1px solid rgba(244,63,94,0.35);
@@ -416,7 +416,7 @@
   .sync-panel { display: flex; flex-direction: column; gap: 4px; margin-right: 14px; }
   .sync-item {
     display: flex; align-items: center; gap: 6px;
-    font-family: var(--font-mono); font-size: 9.6px;
+    font-family: var(--font-mono); font-size: 8.4px;
     color: var(--text-secondary);
     padding: 2px 9px; border-radius: 999px;
     background: rgba(255,255,255,0.03);
@@ -435,7 +435,7 @@
   .sync-item.bad  .dot { background: var(--tac-red); }
   .sync-item.bad  .val { color: #fda4af; }
   @keyframes sync-bad { 50% { box-shadow: 0 0 0 3px rgba(244,63,94,0.25); } }
-  button.wake-btn { cursor: pointer; font: inherit; font-family: var(--font-mono); font-size: 9.6px; }
+  button.wake-btn { cursor: pointer; font: inherit; font-family: var(--font-mono); font-size: 8.4px; }
   button.wake-btn[hidden] { display: none; }
   .panel-title-wrap svg {
     width: 14px; height: 14px;
@@ -443,7 +443,7 @@
     flex-shrink: 0;
   }
   .panel-title-wrap h2 {
-    font-size: 11.4px;
+    font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.2px;
     margin: 0;
@@ -474,7 +474,7 @@
     align-items: center;
     justify-content: center;
     color: var(--text-muted);
-    font-size: 13.1px;
+    font-size: 11.5px;
     font-weight: 500;
     gap: 6px;
   }
@@ -491,7 +491,7 @@
   }
   .panel-count {
     font-family: var(--font-mono);
-    font-size: 9.6px;
+    font-size: 8.4px;
     color: var(--text-muted);
     opacity: 0.7;
   }
@@ -526,7 +526,7 @@
     --accent: #c4b5fd;                      /* ícone, etiqueta e barra lateral */
     --accent-bg: rgba(196, 181, 253, 0.18);
     --accent-bd: rgba(196, 181, 253, 0.55);
-    font-size: calc(var(--fit, 1) * clamp(13.2px, 1.6vh, 17.6px));
+    font-size: calc(var(--fit, 1) * clamp(11.6px, 1.4vh, 15.5px));
     background: linear-gradient(135deg, var(--box-a) 0%, var(--box-b) 55%, var(--box-c) 100%);
     border: 1px solid rgba(196, 181, 253, 0.30);
     border-left: 0.28em solid var(--accent);
@@ -739,7 +739,7 @@
     /* Painel do evento (faixa "Evento"): tom neutro ainda mais translúcido. */
     --side-a: rgba(226, 232, 240, 0.58);
     --side-b: rgba(100, 116, 139, 0.58);
-    font-size: calc(var(--fit, 1) * clamp(13.2px, 1.6vh, 17.6px));
+    font-size: calc(var(--fit, 1) * clamp(11.6px, 1.4vh, 15.5px));
     background: linear-gradient(135deg, var(--box-a) 0%, var(--box-b) 55%, var(--box-c) 100%);
     border: 1px solid rgba(148, 163, 184, 0.30);
     border-radius: 0.6em;
@@ -987,7 +987,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 17.2px;
+    font-size: 15.1px;
     flex-shrink: 0;
     overflow: hidden;
   }
@@ -1016,7 +1016,7 @@
   }
   .veic-id {
     font-family: var(--font-mono);
-    font-size: 14.2px;
+    font-size: 12.5px;
     font-weight: 700;
     color: #ffffff;
     letter-spacing: 0.4px;
@@ -1032,7 +1032,7 @@
   }
   .veic-status-badge {
     font-family: var(--font-mono);
-    font-size: 9.1px;
+    font-size: 8px;
     font-weight: 800;
     letter-spacing: 0.7px;
     color: #fff1f2;
@@ -1043,27 +1043,27 @@
   }
   .veic-date-stamp {
     font-family: var(--font-mono);
-    font-size: 9.6px;
+    font-size: 8.4px;
     color: var(--text-muted);
     white-space: nowrap;
   }
   .veic-elapsed {
-    font-size: 8.6px;
+    font-size: 7.6px;
     color: var(--text-muted);
     opacity: 0.7;
   }
   .veic-obs {
-    font-size: 11.6px;
+    font-size: 10.2px;
     color: var(--text-secondary);
     margin-top: 3px;
     line-height: 1.3;
   }
 
   /* ================= 4. METEOROLOGIA & RISCO C2 ================= */
-  .meteo-head-icon { font-size: 18.2px; line-height: 1; }
+  .meteo-head-icon { font-size: 16px; line-height: 1; }
   .meteo-head-temp {
     font-family: var(--font-mono);
-    font-size: 15.1px;
+    font-size: 13.3px;
     font-weight: 800;
     color: #ffffff;
   }
@@ -1078,14 +1078,14 @@
   }
   .meteo-head-minmax-label {
     font-family: var(--font-mono);
-    font-size: 7.6px;
+    font-size: 6.7px;
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.3px;
   }
   .meteo-head-minmax-val {
     font-family: var(--font-mono);
-    font-size: 10.8px;
+    font-size: 9.5px;
     font-weight: 700;
     color: var(--text-primary);
   }
@@ -1093,19 +1093,19 @@
   .meteo-head-feels { display: flex; align-items: baseline; gap: 4px; margin-left: -2px; }
   .meteo-head-feels-label {
     font-family: var(--font-mono);
-    font-size: 7.6px;
+    font-size: 6.7px;
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.3px;
   }
   .meteo-head-feels-val {
     font-family: var(--font-mono);
-    font-size: 10.8px;
+    font-size: 9.5px;
     font-weight: 700;
     color: var(--text-primary);
   }
   .panel-subtitle-inline {
-    font-size: 10.6px;
+    font-size: 9.3px;
     font-weight: 500;
     color: var(--text-muted);
     text-transform: capitalize;
@@ -1134,7 +1134,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 11.6px;
+    font-size: 10.2px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.4px;
@@ -1145,7 +1145,7 @@
   }
   .c2-risk-indicator {
     font-family: var(--font-mono);
-    font-size: 11.1px;
+    font-size: 9.8px;
     font-weight: 800;
     letter-spacing: 0.6px;
     text-transform: uppercase;
@@ -1172,14 +1172,14 @@
   }
   .kpi-label {
     font-family: var(--font-mono);
-    font-size: 9.1px;
+    font-size: 8px;
     text-transform: uppercase;
     color: var(--text-muted);
     letter-spacing: 0.4px;
   }
   .kpi-val {
     font-family: var(--font-mono);
-    font-size: 12.7px;
+    font-size: 11.2px;
     font-weight: 700;
     color: #f1f5f9;
   }
@@ -1191,7 +1191,7 @@
     margin-top: 2px;
   }
   .c2-warn-item {
-    font-size: 11.6px;
+    font-size: 10.2px;
     font-weight: 500;
     padding: 5px 9px;
     border-radius: var(--radius-sm);
@@ -1212,7 +1212,7 @@
   .kpi-tile.lvl-bad  .kpi-val { color: #fda4af; }
   .kpi-sub {
     font-family: var(--font-mono);
-    font-size: 9.2px;
+    font-size: 8.1px;
     color: var(--text-secondary);
     white-space: nowrap;
   }
@@ -1224,7 +1224,7 @@
 
   .meteo-footer-stamp {
     font-family: var(--font-mono);
-    font-size: 8.1px;
+    font-size: 7.1px;
     color: var(--text-muted);
     opacity: 0.55;
     text-align: right;
@@ -1251,7 +1251,7 @@
     align-items: center;
     gap: 6px;
     font-family: var(--font-mono);
-    font-size: 12.6px;
+    font-size: 11.1px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.8px;
@@ -1275,7 +1275,7 @@
   .ticker-scroll-inner {
     position: absolute;
     white-space: nowrap;
-    font-size: 14.4px;
+    font-size: 12.7px;
     color: var(--text-primary);
     animation: c2-scroll 55s linear infinite;
     will-change: transform;
@@ -1316,11 +1316,11 @@
     /* Telemóvel em modo retrato: cabeçalho e rodapé mais compactos para
        sobrar espaço aos painéis. */
     .app-layout { padding: 10px 10px; gap: 10px; }
-    .tac-crest { width: 44px; height: 44px; }
-    .brand-meta h1 { font-size: 19px; }
+    .tac-crest { width: 38px; height: 38px; }
+    .brand-meta h1 { font-size: 17px; }
     .brand-meta p { font-size: 11px; gap: 6px; }
     .brand-meta p::before, .brand-meta p::after { width: 18px; }
-    .cal-tile { width: 42px; }
+    .cal-tile { width: 38px; }
     .grid-col .c2-panel { min-height: 300px; }
   }
 </style>
@@ -1387,7 +1387,7 @@
         <div class="c2-panel-head">
           <div class="panel-title-wrap">
             <span class="icon-walkie" style="width:14px;height:14px;color:var(--tac-blue);"></span>
-            <h2>Teatro Operações & Comunicações</h2>
+            <h2>Plano de Comunicações</h2>
           </div>
           <div class="panel-meta" id="canais-meta"></div>
         </div>
@@ -2002,7 +2002,7 @@ function renderCanais(){
   meta.innerHTML = items.length ? (countLabel(items.length) + dots(totalPages, page)) : '';
 
   if(!items.length){
-    body.innerHTML = '<div class="empty-state">Sem teatros de operações ativos registados.</div>';
+    body.innerHTML = '<div class="empty-state">Sem comunicações planeadas registadas.</div>';
     return;
   }
 
@@ -2035,7 +2035,7 @@ function renderCanais(){
     }).join('');
 
     const hor = getCol(row, 'Horario');
-    const nome = getCol(row, 'Evento') || findCol(row, ['evento']) || 'Teatro de Operações';
+    const nome = getCol(row, 'Evento') || findCol(row, ['evento']) || 'Plano de Comunicações';
     const nomeSz = nome.length > 90 ? 'xs' : (nome.length > 52 ? 'sm' : '');
 
     return `
