@@ -516,12 +516,16 @@
     overflow: hidden;
   }
   .paged-2 > .empty-state { grid-row: 1 / -1; }
-  /* Painel com 1 informação por página (Plano de Comunicações): a caixa ocupa toda a altura. */
-  .paged-1 {
+  /* Painel com 3 informações por página (Plano de Comunicações): cada caixa é medida num terço
+     da altura e depois encolhe para o seu conteúdo (classe .fitted-body), ficando as 3 seguidas no topo. */
+  .paged-3 {
     display: grid;
-    grid-template-rows: minmax(0, 1fr);
+    grid-template-rows: repeat(3, minmax(0, 1fr));
+    gap: 10px;
     overflow: hidden;
   }
+  .paged-3 > .empty-state { grid-row: 1 / -1; }
+  .paged-3.fitted-body { grid-template-rows: none; grid-auto-rows: auto; align-content: start; }
   /* Caixa do evento ajustada ao conteúdo (evento + ecrãs), no topo do quadro, sem espaço vazio */
   .c2-theatre-card.fitted { align-self: start; }
   .c2-theatre-card.fitted .channels-grid { flex: 0 0 auto; }
@@ -1439,7 +1443,7 @@
           <div class="panel-meta" id="canais-meta"></div>
         </div>
         <div class="rotate-bar" id="rot-canais"><span></span></div>
-        <div class="c2-panel-body paged-1 no-scrollbar" id="canais-body">
+        <div class="c2-panel-body paged-3 no-scrollbar" id="canais-body">
           <div class="empty-state">A sincronizar rede de rádio…</div>
         </div>
       </section>
@@ -1523,7 +1527,7 @@ const GID_CANAIS       = 752912776;   // folha "Canais Radio"
 const GID_VEICULOS     = 171672820;   // folha "Veículos"
 
 const PAGE_SIZE_AGENDAMENTOS = 2;
-const PAGE_SIZE_CANAIS       = 1;   // 1 informação (evento) por página
+const PAGE_SIZE_CANAIS       = 3;   // 3 informações (eventos) por página
 const PAGE_SIZE_VEICULOS     = 6;   // grelha 3 linhas x 2 colunas
 
 const ROTATE_MS   = 30000;   // rodar ecrãs a cada 30 segundos
@@ -1990,6 +1994,7 @@ const SVG_RADIO_BATT = '<svg viewBox="0 0 20 12" aria-hidden="true"><path fill-r
 // (barra de estado, moldura, antena) é medido em "em", por isso escala com o tamanho de letra do rádio.
 const RADIO_MAX_H = 105;   // altura máxima (px) de cada ecrã de canal rádio
 function layoutRadios(root){
+  if(root.classList) root.classList.remove('fitted-body');   // mede com a grelha de 3 terços
   // caixa baixa: evento mais compacto (feito antes de medir o espaço dos ecrãs)
   root.querySelectorAll('.c2-theatre-card').forEach(card => {
     card.classList.remove('fitted');            // mede primeiro com a altura total disponível
@@ -2019,6 +2024,7 @@ function layoutRadios(root){
   });
   // depois de calcular o tamanho dos ecrãs, a caixa encolhe para a altura do conteúdo
   root.querySelectorAll('.c2-theatre-card').forEach(card => card.classList.add('fitted'));
+  if(root.classList && root.querySelector('.c2-theatre-card')) root.classList.add('fitted-body');
 }
 
 const RADIO_MAX_PX = 22;   // tamanho máximo da letra dos canais rádio
@@ -2120,6 +2126,7 @@ function renderCanais(){
       </div>
     `;
   }).join('');
+  body.classList.remove('fitted-body');   // mede com a grelha de 3 terços
   body.style.setProperty('--fit', 1);
   fitBody(body);
   layoutRadios(body);      // ecrãs ajustados ao espaço livre
