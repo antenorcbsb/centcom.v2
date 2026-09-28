@@ -516,6 +516,12 @@
     overflow: hidden;
   }
   .paged-2 > .empty-state { grid-row: 1 / -1; }
+  /* Painel com 1 informação por página (Plano de Comunicações): a caixa ocupa toda a altura. */
+  .paged-1 {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+    overflow: hidden;
+  }
 
   /* AGENDAMENTO = violeta profundo | INFORMAÇÃO = esmeralda profundo.
      As cores da caixa vivem em variáveis para serem fáceis de ajustar. */
@@ -834,7 +840,8 @@
     display: grid;
     grid-template-columns: repeat(var(--cols, 1), minmax(0, var(--maxw, 14em)));
     justify-content: center;
-    grid-auto-rows: minmax(0, 1fr);
+    grid-auto-rows: var(--rowh, minmax(0, 1fr));
+    align-content: center;                   /* ecrãs centrados na caixa, sem esticar */
     gap: 0.7em;
   }
   .radio {
@@ -1429,7 +1436,7 @@
           <div class="panel-meta" id="canais-meta"></div>
         </div>
         <div class="rotate-bar" id="rot-canais"><span></span></div>
-        <div class="c2-panel-body paged-2 no-scrollbar" id="canais-body">
+        <div class="c2-panel-body paged-1 no-scrollbar" id="canais-body">
           <div class="empty-state">A sincronizar rede de rádio…</div>
         </div>
       </section>
@@ -1513,7 +1520,7 @@ const GID_CANAIS       = 752912776;   // folha "Canais Radio"
 const GID_VEICULOS     = 171672820;   // folha "Veículos"
 
 const PAGE_SIZE_AGENDAMENTOS = 2;
-const PAGE_SIZE_CANAIS       = 2;
+const PAGE_SIZE_CANAIS       = 1;   // 1 informação (evento) por página
 const PAGE_SIZE_VEICULOS     = 6;   // grelha 3 linhas x 2 colunas
 
 const ROTATE_MS   = 30000;   // rodar ecrãs a cada 30 segundos
@@ -1978,6 +1985,7 @@ const SVG_RADIO_BATT = '<svg viewBox="0 0 20 12" aria-hidden="true"><path fill-r
 // 1) Os ecrãs ajustam-se ao espaço livre da caixa; 2) o canal ocupa o maior tamanho que cabe no ecrã.
 // Tamanho dos ecrãs: usa todo o espaço livre da caixa (altura e largura). Todo o interior do rádio
 // (barra de estado, moldura, antena) é medido em "em", por isso escala com o tamanho de letra do rádio.
+const RADIO_MAX_H = 105;   // altura máxima (px) de cada ecrã de canal rádio
 function layoutRadios(root){
   // caixa baixa: evento mais compacto (feito antes de medir o espaço dos ecrãs)
   root.querySelectorAll('.c2-theatre-card').forEach(card => {
@@ -1990,7 +1998,9 @@ function layoutRadios(root){
     const gapX = parseFloat(cs.columnGap) || 0, gapY = parseFloat(cs.rowGap) || 0;
     const cols = parseInt(grid.style.getPropertyValue('--cols'), 10) || 1;
     const rows = Math.ceil(radios.length / cols);
-    const cellH = (grid.clientHeight - gapY * (rows - 1)) / rows;
+    // altura de cada ecrã: a que cabe no espaço livre, mas limitada (os ecrãs não precisam de ser grandes)
+    const cellH = Math.min(RADIO_MAX_H, (grid.clientHeight - gapY * (rows - 1)) / rows);
+    grid.style.setProperty('--rowh', cellH + 'px');
     const low = cellH < 88;                                   // pouco espaço em altura: ecrã compacto
     grid.classList.toggle('low', low);
     const maxW = cellH * (low ? 5 : 3);                       // proporção máxima de um ecrã largo
