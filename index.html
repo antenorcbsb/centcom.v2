@@ -522,6 +522,9 @@
     grid-template-rows: minmax(0, 1fr);
     overflow: hidden;
   }
+  /* Caixa do evento ajustada ao conteúdo (evento + ecrãs), no topo do quadro, sem espaço vazio */
+  .c2-theatre-card.fitted { align-self: start; }
+  .c2-theatre-card.fitted .channels-grid { flex: 0 0 auto; }
 
   /* AGENDAMENTO = violeta profundo | INFORMAÇÃO = esmeralda profundo.
      As cores da caixa vivem em variáveis para serem fáceis de ajustar. */
@@ -1989,6 +1992,7 @@ const RADIO_MAX_H = 105;   // altura máxima (px) de cada ecrã de canal rádio
 function layoutRadios(root){
   // caixa baixa: evento mais compacto (feito antes de medir o espaço dos ecrãs)
   root.querySelectorAll('.c2-theatre-card').forEach(card => {
+    card.classList.remove('fitted');            // mede primeiro com a altura total disponível
     card.classList.toggle('tight', card.clientHeight < 150);
   });
   root.querySelectorAll('.channels-grid').forEach(grid => {
@@ -2013,6 +2017,8 @@ function layoutRadios(root){
       : Math.max(9, Math.min(cellH / 8, cellW / 13, 20));
     radios.forEach(r => { r.style.fontSize = f + 'px'; });
   });
+  // depois de calcular o tamanho dos ecrãs, a caixa encolhe para a altura do conteúdo
+  root.querySelectorAll('.c2-theatre-card').forEach(card => card.classList.add('fitted'));
 }
 
 const RADIO_MAX_PX = 22;   // tamanho máximo da letra dos canais rádio
