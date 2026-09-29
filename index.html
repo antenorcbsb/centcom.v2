@@ -1218,6 +1218,22 @@
   .c2-warn-dot {
     width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
   }
+  .c2-warn-item.warn-yellow { border-color: rgba(251,191,36,0.45); }
+  .c2-warn-item.warn-orange { border-color: rgba(251,146,60,0.55); }
+  .c2-warn-item.warn-red    { border-color: rgba(244,63,94,0.65); }
+  .c2-warn-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .c2-warn-period {
+    font-family: var(--font-mono);
+    font-size: 9.2px;
+    color: var(--text-secondary);
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  }
+  .c2-warn-tag {
+    font-size: 8px; font-weight: 700; letter-spacing: 0.5px;
+    padding: 1px 5px; border-radius: 3px;
+  }
+  .c2-warn-tag.vigor { background: rgba(244,63,94,0.22); color: #fda4af; }
+  .c2-warn-tag.prev  { background: rgba(56,189,248,0.18); color: #7dd3fc; }
 
   /* Valores com limiar operacional (vento forte / humidade baixa) */
   .kpi-tile.lvl-warn { border-color: rgba(251,191,36,0.55); background: rgba(251,191,36,0.08); }
@@ -1291,7 +1307,7 @@
     white-space: nowrap;
     font-size: 12.7px;
     color: var(--text-primary);
-    animation: c2-scroll 55s linear infinite;
+    animation: c2-scroll 120s linear infinite;
     will-change: transform;
   }
   .ticker-scroll-inner b {
@@ -2208,6 +2224,18 @@ function renderTicker(){
   track.innerHTML = pieces.join('<span class="ticker-divider">◆</span>') +
     '<span class="ticker-divider">◆</span>' +
     pieces.join('<span class="ticker-divider">◆</span>');
+  setTickerSpeed(track);
+}
+
+/* Velocidade do rodapé em píxeis por segundo (valor menor = mais lento) */
+const TICKER_PX_PER_SEC = 30;
+function setTickerSpeed(track){
+  requestAnimationFrame(() => {
+    const dist = track.scrollWidth / 2;              // a animação percorre metade (texto duplicado)
+    const secs = Math.max(40, Math.round(dist / TICKER_PX_PER_SEC));
+    const newDur = secs + 's';
+    if(track.style.animationDuration !== newDur) track.style.animationDuration = newDur;
+  });
 }
 
 function dots(total, current){
@@ -2331,8 +2359,8 @@ async function loadWeather(){
     weatherState.warnings = (json||[]).filter(w =>
       w.idAreaAviso === weatherState.area &&
       w.awarenessLevelID && w.awarenessLevelID.toLowerCase() !== 'green' &&
-      new Date(w.startTime) <= now && now <= new Date(w.endTime)
-    );
+      now <= new Date(w.endTime)
+    ).sort((a,b) => new Date(a.startTime) - new Date(b.startTime));
   }catch(e){ console.error('IPMA warnings err', e); }
 
   try{
@@ -2361,20 +2389,53 @@ async function loadWeather(){
   if(!syncState.meteoOk || Date.now() - syncState.meteoOk > 60000) weatherRetryTimer = setTimeout(loadWeather, 60000);
 }
 
+/* Tradução / formatação dos avisos IPMA (tudo em português) */
+const WARN_TIPO_PT = {
+  'wind':'Vento','vento':'Vento',
+  'rain':'Precipitação','precipitation':'Precipitação','precipitação':'Precipitação',
+  'snow':'Neve','neve':'Neve',
+  'thunderstorms':'Trovoada','thunderstorm':'Trovoada','trovoada':'Trovoada',
+  'fog':'Nevoeiro','nevoeiro':'Nevoeiro',
+  'hot weather':'Tempo Quente','tempo quente':'Tempo Quente',
+  'cold weather':'Tempo Frio','tempo frio':'Tempo Frio',
+  'coastal event':'Agitação Marítima','maritime agitation':'Agitação Marítima','agitação marítima':'Agitação Marítima'
+};
+function warnTipoPT(t){
+  if(!t) return 'Meteorológico';
+  return WARN_TIPO_PT[String(t).trim().toLowerCase()] || t;
+}
+function warnNivelPT(l){
+  return ({yellow:'Amarelo', orange:'Laranja', red:'Vermelho'})[l] || l;
+}
+function warnPeriodo(ini, fim){
+  const p = n => String(n).padStart(2,'0');
+  const dia = d => `${p(d.getDate())}/${p(d.getMonth()+1)}`;
+  const hora = d => `${p(d.getHours())}:${p(d.getMinutes())}`;
+  if(isNaN(ini) || isNaN(fim)) return '';
+  if(dia(ini) === dia(fim)) return `${dia(ini)} das ${hora(ini)} às ${hora(fim)}`;
+  return `de ${dia(ini)} ${hora(ini)} até ${dia(fim)} ${hora(fim)}`;
+}
+
 function renderWeather(){
   const body = document.getElementById('meteo-body');
   const c = weatherState.current;
   const d = weatherState.daily;
 
   let warningsHtml = '';
+  const nowTs = new Date();
   if(weatherState.warnings.length){
     warningsHtml = weatherState.warnings.map(w => {
       const lvl = (w.awarenessLevelID||'yellow').toLowerCase();
       const dotColor = lvl==='red'?'#f43f5e':(lvl==='orange'?'#fb923c':'#fbbf24');
+      const ini = new Date(w.startTime), fim = new Date(w.endTime);
+      const emVigor = ini <= nowTs && nowTs <= fim;
       return `
-        <div class="c2-warn-item">
+        <div class="c2-warn-item warn-${lvl}">
           <span class="c2-warn-dot" style="background:${dotColor}"></span>
-          <span><b>Aviso IPMA:</b> ${escapeHtml(w.awarenessTypeName||'Meteorológico')} (Nível ${escapeHtml(w.awarenessLevelID)})</span>
+          <span class="c2-warn-text">
+            <span><b>Aviso IPMA:</b> ${escapeHtml(warnTipoPT(w.awarenessTypeName))} (Nível ${warnNivelPT(lvl)})</span>
+            <span class="c2-warn-period">${emVigor ? '<span class="c2-warn-tag vigor">EM VIGOR</span>' : '<span class="c2-warn-tag prev">PREVISTO</span>'} ${warnPeriodo(ini, fim)}</span>
+          </span>
         </div>`;
     }).join('');
   } else {
@@ -2417,7 +2478,8 @@ function renderWeather(){
   const LVL_ORDER = { yellow:1, orange:2, red:3 };
   const LVL_NAME  = { yellow:'Amarelo', orange:'Laranja', red:'Vermelho' };
   let worst = null;
-  weatherState.warnings.forEach(w => {
+  const avisosEmVigor = weatherState.warnings.filter(w => new Date(w.startTime) <= nowTs && nowTs <= new Date(w.endTime));
+  avisosEmVigor.forEach(w => {
     const l = (w.awarenessLevelID||'').toLowerCase();
     if(LVL_ORDER[l] && (!worst || LVL_ORDER[l] > LVL_ORDER[(worst.awarenessLevelID||'').toLowerCase()])) worst = w;
   });
@@ -2427,8 +2489,8 @@ function renderWeather(){
   if(worst){
     const l = worst.awarenessLevelID.toLowerCase();
     nowBar.classList.add('alert-' + l);
-    const extra = weatherState.warnings.length > 1 ? ` +${weatherState.warnings.length - 1}` : '';
-    alertEl.textContent = `⚠ Aviso ${LVL_NAME[l]} · ${worst.awarenessTypeName || ''}${extra}`;
+    const extra = avisosEmVigor.length > 1 ? ` +${avisosEmVigor.length - 1}` : '';
+    alertEl.textContent = `⚠ Aviso ${LVL_NAME[l]} · ${warnTipoPT(worst.awarenessTypeName)}${extra}`;
   } else {
     alertEl.textContent = '';
   }
