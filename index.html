@@ -1221,12 +1221,19 @@
   .c2-warn-item.warn-yellow { border-color: rgba(251,191,36,0.45); }
   .c2-warn-item.warn-orange { border-color: rgba(251,146,60,0.55); }
   .c2-warn-item.warn-red    { border-color: rgba(244,63,94,0.65); }
+  .c2-warn-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px;
+  }
+  .c2-warn-grid.single { grid-template-columns: 1fr; }
+  .c2-warn-grid .c2-warn-item { padding: 4px 7px; gap: 6px; min-width: 0; }
   .c2-warn-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
   .c2-warn-period {
     font-family: var(--font-mono);
     font-size: 9.2px;
     color: var(--text-secondary);
-    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    display: flex; align-items: center; gap: 4px 6px; flex-wrap: wrap;
   }
   .c2-warn-tag {
     font-size: 8px; font-weight: 700; letter-spacing: 0.5px;
@@ -2529,7 +2536,9 @@ function renderWeather(){
 
     <div class="c2-warnings-list">
       ${riskHtml}
-      ${warningsHtml}
+      <div class="c2-warn-grid${weatherState.warnings.length ? '' : ' single'}">
+        ${warningsHtml}
+      </div>
     </div>
 
   `;
