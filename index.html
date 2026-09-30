@@ -7,6 +7,31 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>
+/* ==================== QUADRO ÚNICO (?quadro=...) ====================
+   index.html                         -> os 4 quadros (como sempre)
+   index.html?quadro=agendamentos     -> só Agendamentos & Informações
+   index.html?quadro=comunicacoes     -> só Plano de Comunicações
+   index.html?quadro=veiculos         -> só Veículos Inoperacionais
+   index.html?quadro=meteo            -> só Meteorologia & Alertas
+   Opcional: &zoom=1.5 (ampliação manual) · &titulo=0 (sem caixa de título) · &rodape=0 (sem barra de comunicações) */
+(function(){
+  var qs = new URLSearchParams(location.search);
+  var q = (qs.get('quadro') || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z]/g, '');
+  var MAP = {
+    agendamentos:'agendamentos', agendamento:'agendamentos', agenda:'agendamentos', informacoes:'agendamentos',
+    comunicacoes:'canais', planodecomunicacoes:'canais', plano:'canais', canais:'canais', radio:'canais',
+    veiculos:'veiculos', veiculo:'veiculos', inop:'veiculos', viaturas:'veiculos',
+    meteo:'meteo', meteorologia:'meteo', tempo:'meteo'
+  };
+  var k = MAP[q];
+  if(!k) return;
+  var de = document.documentElement;
+  de.setAttribute('data-quadro', k);
+  if(qs.get('titulo') === '0') de.setAttribute('data-sem-titulo', '');
+  if(qs.get('rodape') === '0') de.setAttribute('data-sem-rodape', '');
+})();
+</script>
 <style>
   :root {
     --bg-base: #070b12;
@@ -1259,6 +1284,13 @@
   .c2-risk-banner.risk-high { border-color: rgba(249,115,22,0.6); background: rgba(249,115,22,0.10); }
   .c2-risk-banner.risk-max  { border-color: rgba(244,63,94,0.75); background: rgba(244,63,94,0.14); animation: alert-pulse-red 1.4s ease-in-out infinite; }
 
+  /* Quadro Meteorologia: caixas mais juntas */
+  #meteo-body { gap: 4px; }
+  #meteo-body .meteo-kpi-grid { margin-top: 0; gap: 4px; }
+  #meteo-body .c2-warnings-list { gap: 4px; margin-top: 0; }
+  #meteo-body .c2-warn-grid { gap: 4px; }
+  #meteo-body .c2-risk-banner { margin-top: 0; }
+
   .meteo-footer-stamp {
     font-family: var(--font-mono);
     font-size: 7.1px;
@@ -1412,6 +1444,36 @@
     .cal-tile { width: 38px; }
     .grid-col .c2-panel { min-height: 300px; }
   }
+
+  /* ==================== QUADRO ÚNICO (?quadro=...) ====================
+     Só o quadro escolhido fica visível e ocupa todo o ecrã. O quadro é desenhado
+     com o tamanho que tem na vista de 4 quadros e depois ampliado (--solo-zoom),
+     por isso mantém exatamente o mesmo aspeto, só que maior. */
+  html[data-quadro], html[data-quadro] body { height: 100%; min-height: 0; overflow: hidden; }
+  html[data-quadro] .app-layout { height: 100vh; min-height: 0; }
+  html[data-quadro] main.c2-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    position: relative;
+    overflow: hidden;
+  }
+  html[data-quadro] .grid-col { display: contents; }
+  html[data-quadro] .c2-panel { display: none; }
+  html[data-quadro="agendamentos"] #panel-agendamentos,
+  html[data-quadro="canais"] #panel-canais,
+  html[data-quadro="veiculos"] #panel-veiculos,
+  html[data-quadro="meteo"] #panel-meteo {
+    display: flex;
+    position: absolute;
+    top: 0; left: 0;
+    transform-origin: 0 0;
+    min-height: 0;
+  }
+  html[data-sem-titulo] header.c2-header { display: none; }
+  html[data-sem-rodape] footer.c2-ticker { display: none; }
+  @media (max-width: 1024px) {
+    html[data-quadro] header.c2-header { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); justify-items: stretch; }
+  }
 </style>
 </head>
 <body>
@@ -1540,6 +1602,41 @@
 </div>
 
 <script>
+
+/* ==================== QUADRO ÚNICO: AMPLIAÇÃO ==================== */
+// Desenha o quadro com o tamanho de um quadrante da vista de 4 quadros e amplia-o
+// para ocupar todo o espaço livre. As medições internas (ecrãs de rádio, ajuste de letra)
+// continuam a funcionar como na vista normal.
+function applySoloLayout(){
+  const k = document.documentElement.getAttribute('data-quadro');
+  if(!k) return;
+  const main = document.querySelector('main.c2-grid');
+  const panel = document.getElementById('panel-' + k);
+  if(!main || !panel) return;
+  const W = main.clientWidth, H = main.clientHeight;
+  if(!W || !H) return;
+  const GAP = 12;
+  // largura/altura que o quadro teria na vista de 4 quadros (colunas 1.15fr / 0.85fr, 2 linhas)
+  const frac = (k === 'canais' || k === 'agendamentos') ? 1.15 / 2 : 0.85 / 2;
+  const refW = Math.max(320, (W - GAP) * frac);
+  const refH = Math.max(220, (H - GAP) / 2);
+  let z = Math.min(W / refW, H / refH);
+  const manual = parseFloat(new URLSearchParams(location.search).get('zoom'));
+  if(manual > 0) z = manual;
+  z = Math.max(1, Math.min(z, 4));
+  panel.style.width = (W / z) + 'px';
+  panel.style.height = (H / z) + 'px';
+  panel.style.transform = 'scale(' + z + ')';
+  document.documentElement.style.setProperty('--solo-zoom', z);
+}
+(function(){
+  const k = document.documentElement.getAttribute('data-quadro');
+  if(!k) return;
+  const nomes = { agendamentos:'Agendamentos & Informações', canais:'Plano de Comunicações', veiculos:'Veículos Inoperacionais', meteo:'Meteorologia & Alertas' };
+  document.title = 'CENTCOM · ' + nomes[k];
+  applySoloLayout();
+})();
+
 /* ==================== CONFIG ==================== */
 const SHEET_COMANDO_ID = '1XPVKo_d35yV3k4C1CF82wL43m0ku-wvkcksmcG5CfnQ';
 // Google Sheets OPTEL_Veiculos (folhas "Canais Radio" e "Veículos")
@@ -2458,7 +2555,7 @@ function renderWeather(){
     <div class="c2-risk-banner ${r >= 5 ? 'risk-max' : (r >= 4 ? 'risk-high' : '')}">
       <div class="risk-title-side">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 23c6.075 0 11-4.925 11-11C23 6 17 1 12 1 7 1 1 6 1 12c0 6.075 4.925 11 11 11zm0-3a8 8 0 110-16 8 8 0 010 16z"/></svg>
-        Risco de Incêndio Rural (RCM)
+        Risco de Incêndio Rural
       </div>
       <span class="c2-risk-indicator" style="background:${RISK_COLORS[r]||'#fbbf24'}">
         ${RISK_LABELS[r] || 'Nível '+r}
@@ -2535,10 +2632,10 @@ function renderWeather(){
     </div>
 
     <div class="c2-warnings-list">
-      ${riskHtml}
       <div class="c2-warn-grid${weatherState.warnings.length ? '' : ' single'}">
         ${warningsHtml}
       </div>
+      ${riskHtml}
     </div>
 
   `;
@@ -2574,6 +2671,7 @@ async function loadSheets(){
 }
 
 function renderAll(){
+  applySoloLayout();
   renderAgendamentos();
   renderCanais();
   renderVeiculos();
