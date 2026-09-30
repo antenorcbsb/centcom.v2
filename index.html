@@ -710,6 +710,13 @@
     flex-shrink: 0;
   }
   .c2-tag.meios.has-img { padding: 0.2em 0.7em 0.2em 0.25em; }
+  /* Meio com guarnição ("VUCI 02: 5 Bombeiros"): viatura + bombeiros colados no mesmo bloco */
+  .meio-grupo { display: inline-flex; align-items: stretch; }
+  .meio-grupo > .c2-tag.meios { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+  .meio-grupo > .c2-tag.guarnicao {
+    border-top-left-radius: 0; border-bottom-left-radius: 0;
+    border-left-style: dashed;
+  }
   .firefighter-icon {
     width: 1.25em; height: 1.45em;
     object-fit: contain;
@@ -1818,6 +1825,21 @@ function getCol(row, ...names){
   }
   return '';
 }
+// Meios alocados com guarnição opcional por viatura.
+// "VUCI 02: 5 Bombeiros; VLCI 06: Silva, Costa" -> [{veiculo:'VUCI 02', guarnicao:'5 Bombeiros'}, ...]
+// Sem ":" mantém o comportamento antigo ("VUCI 02; VLCI 06" ou "VUCI 02, VLCI 06").
+function parseMeios(s){
+  const txt = (s || '').trim();
+  if(!txt) return [];
+  const comGuarnicao = txt.includes(':');
+  const partes = comGuarnicao ? txt.split(/[;\n]+/) : txt.split(/[,;\n]+/);
+  return partes.map(p => p.trim()).filter(Boolean).map(p => {
+    const i = p.indexOf(':');
+    if(i < 0) return { veiculo: p, guarnicao: '' };
+    return { veiculo: p.slice(0, i).trim(), guarnicao: p.slice(i + 1).trim() };
+  }).filter(m => m.veiculo);
+}
+
 function splitList(s){
   return (s || '').split(/[,;\n]+/).map(x => x.trim()).filter(Boolean);
 }
@@ -2048,7 +2070,7 @@ function renderAgendamentos(){
   body.innerHTML = slice.map(row => {
     const tipo = getCol(row, 'Tipo');
     const isInfo = /informa/i.test(tipo);
-    const meios = splitList(findCol(row, ['meios']));
+    const meios = parseMeios(findCol(row, ['meios']));
     const equipas = splitList(getCol(row, 'Equipas', 'Equipa'));
     const descricao = findCol(row, ['descri']);
     const dataRaw = getCol(row, 'Data Inicio', 'Data Início', 'Data');
@@ -2058,16 +2080,22 @@ function renderAgendamentos(){
     const decorrer = agendamentoADecorrer(parseTimeRange(hora));
     const ateLabel = agendamentoAteLabel(row);
 
-    const meiosHtml = meios.map(m => {
+    const meiosHtml = meios.map(({ veiculo: m, guarnicao }) => {
+      let chip;
       // EAPH (Equipa de Apoio Psicológico) não é uma viatura -> usa o capacete dos bombeiros
       if(/\beaph\b/i.test(m)){
-        return `<span class="c2-tag meios"><img class="firefighter-icon" src="${FIREFIGHTER_ICON}" alt="${escapeHtml(m)}">${escapeHtml(m)}</span>`;
+        chip = `<span class="c2-tag meios"><img class="firefighter-icon" src="${FIREFIGHTER_ICON}" alt="${escapeHtml(m)}">${escapeHtml(m)}</span>`;
+      } else {
+        const img = vehicleImageForMeio(m);
+        const icon = img
+          ? `<img class="meios-thumb" src="${img}" alt="${escapeHtml(m)}">`
+          : `<span class="emoji">${vehicleIcon(m)}</span>`;
+        chip = `<span class="c2-tag meios${img ? ' has-img' : ''}">${icon}${escapeHtml(m)}</span>`;
       }
-      const img = vehicleImageForMeio(m);
-      const icon = img
-        ? `<img class="meios-thumb" src="${img}" alt="${escapeHtml(m)}">`
-        : `<span class="emoji">${vehicleIcon(m)}</span>`;
-      return `<span class="c2-tag meios${img ? ' has-img' : ''}">${icon}${escapeHtml(m)}</span>`;
+      if(!guarnicao) return chip;
+      // Bombeiros alocados a esta viatura, colados à direita do chip da viatura
+      const crew = `<span class="c2-tag equipa guarnicao"><img class="firefighter-icon" src="${FIREFIGHTER_ICON}" alt="">${escapeHtml(guarnicao)}</span>`;
+      return `<span class="meio-grupo">${chip}${crew}</span>`;
     }).join('');
     const equipasHtml = equipas.map(eq =>
       `<span class="c2-tag equipa"><img class="firefighter-icon" src="${FIREFIGHTER_ICON}" alt="">${escapeHtml(eq)}</span>`
