@@ -717,6 +717,12 @@
     border-top-left-radius: 0; border-bottom-left-radius: 0;
     border-left-style: dashed;
   }
+  /* Um capacete por bombeiro dentro do bloco da guarnição */
+  .c2-tag.guarnicao { flex-wrap: wrap; gap: 0.25em 0.7em; }
+  .c2-tag.guarnicao .bombeiro {
+    display: inline-flex; align-items: center; gap: 0.3em;
+    white-space: nowrap;
+  }
   .firefighter-icon {
     width: 1.25em; height: 1.45em;
     object-fit: contain;
@@ -1840,6 +1846,17 @@ function parseMeios(s){
   }).filter(m => m.veiculo);
 }
 
+// Guarnição de uma viatura -> lista de bombeiros.
+// Separadores aceites: vírgula, "/", "+", " e ". Se só houver números separados por espaços
+// ("1234 5678 9012"), também separa pelos espaços. "5 Bombeiros" fica como um único item.
+function splitGuarnicao(s){
+  const txt = (s || '').trim();
+  if(!txt) return [];
+  let partes = txt.split(/\s*(?:[,\/+|]|\s+e\s+)\s*/i).map(x => x.trim()).filter(Boolean);
+  if(partes.length === 1 && /^\d+(\s+\d+)+$/.test(partes[0])) partes = partes[0].split(/\s+/);
+  return partes;
+}
+
 function splitList(s){
   return (s || '').split(/[,;\n]+/).map(x => x.trim()).filter(Boolean);
 }
@@ -2094,7 +2111,11 @@ function renderAgendamentos(){
       }
       if(!guarnicao) return chip;
       // Bombeiros alocados a esta viatura, colados à direita do chip da viatura
-      const crew = `<span class="c2-tag equipa guarnicao"><img class="firefighter-icon" src="${FIREFIGHTER_ICON}" alt="">${escapeHtml(guarnicao)}</span>`;
+      // Cada bombeiro (número) tem o seu próprio capacete: "VUCI 02: 1234, 5678" -> 🪖1234 🪖5678
+      const bombeiros = splitGuarnicao(guarnicao);
+      const crew = `<span class="c2-tag equipa guarnicao">${bombeiros.map(b =>
+        `<span class="bombeiro"><img class="firefighter-icon" src="${FIREFIGHTER_ICON}" alt="Bombeiro">${escapeHtml(b)}</span>`
+      ).join('')}</span>`;
       return `<span class="meio-grupo">${chip}${crew}</span>`;
     }).join('');
     const equipasHtml = equipas.map(eq =>
