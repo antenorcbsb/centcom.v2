@@ -53,7 +53,7 @@
     padding: calc(12px + env(safe-area-inset-top, 0px)) 16px calc(12px + env(safe-area-inset-bottom, 0px));
     gap: 10px; min-height: 0;
   }
-
+ 
   /* ===== Cabeçalho (igual à dashboard) ===== */
   header.c2-header {
     display: grid;
@@ -93,7 +93,7 @@
   }
   .brand-meta p::after { transform: scaleX(-1); }
   .header-actions { justify-self: end; display: flex; align-items: center; }
-
+ 
   .sync-panel { display: flex; flex-direction: column; gap: 4px; margin-right: 14px; }
   .sync-item {
     display: flex; align-items: center; gap: 6px;
@@ -110,7 +110,7 @@
   .sync-item.bad .dot { background: var(--tac-red); }
   .sync-item.bad .val { color: #fda4af; }
   @keyframes sync-bad { 50% { box-shadow: 0 0 0 3px rgba(244,63,94,0.25); } }
-
+ 
   .tac-clock { display: flex; align-items: stretch; gap: 12px; }
   .cal-tile {
     width: 44px; border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; text-align: center;
@@ -140,7 +140,7 @@
   }
   .tac-clock .date .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--tac-blue); }
   @keyframes clock-blink { 50% { opacity: 0.25; } }
-
+ 
   /* ===== Barra de filtros compacta ===== */
   .filter-bar {
     flex-shrink: 0;
@@ -179,7 +179,7 @@
   }
   .sum-chip b { color: #fff; font-weight: 800; margin-right: 3px; }
   .sum-chip.main { background: rgba(244,63,94,0.22); border-color: rgba(244,63,94,0.45); }
-
+ 
   /* ===== Grelha principal: lista + mapa ===== */
   main.c2-grid { flex: 1; display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 12px; min-height: 0; }
   .c2-panel {
@@ -209,7 +209,7 @@
     color: var(--text-muted); font-size: 11.5px; font-weight: 500; gap: 6px; padding: 20px;
   }
   .empty-state strong { color: var(--text-secondary); font-size: 12.5px; }
-
+ 
   /* ===== Caixa da ocorrência (estilo das caixas da dashboard) ===== */
   .oc-card {
     --accent: #94a3b8;
@@ -263,8 +263,14 @@
   .c2-tag.meios { color: #fde047; background: rgba(253, 224, 71, 0.10); border-color: rgba(253, 224, 71, 0.38); }
   .c2-tag.zero { opacity: 0.45; }
   .c2-tag .emoji { font-size: 1.15em; line-height: 1; }
+  .c2-badge.imp { --accent: #f43f5e; background: #f43f5e; color: #fff; border-color: #f43f5e; }
+  .oc-posit { font-size: 0.8em; color: var(--text-secondary); font-style: italic; border-left: 2px solid var(--border-strong); padding-left: 0.5em; }
+  .fonte-dados {
+    flex-shrink: 0; padding: 4px 12px; border-top: 1px solid var(--border-subtle);
+    font-family: var(--font-mono); font-size: 9px; color: var(--text-muted); text-align: right;
+  }
   .oc-nomap { font-family: var(--font-mono); font-size: 0.66em; color: var(--text-muted); }
-
+ 
   /* ===== Mapa ===== */
   #map { flex: 1; min-height: 0; background: #0a1222; }
   .map-btn {
@@ -281,7 +287,7 @@
   }
   .map-legend span { display: inline-flex; align-items: center; gap: 5px; }
   .map-legend i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-
+ 
   .oc-marker { position: relative; }
   .oc-marker .pin {
     position: absolute; left: 50%; top: 50%; width: 16px; height: 16px; transform: translate(-50%, -50%);
@@ -292,7 +298,7 @@
     border-radius: 50%; border: 2px solid var(--c); animation: ring 1.8s ease-out infinite;
   }
   @keyframes ring { to { width: 44px; height: 44px; opacity: 0; } }
-
+ 
   .leaflet-container { font-family: var(--font-ui); }
   .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: #111a2e; color: var(--text-primary); border: 1px solid var(--border-strong); }
   .leaflet-popup-content { margin: 10px 12px; font-size: 12px; line-height: 1.4; }
@@ -303,11 +309,11 @@
   .leaflet-control-attribution a { color: var(--text-secondary) !important; }
   .leaflet-bar a { background: #111a2e; color: var(--text-primary); border-bottom-color: var(--border-strong); }
   .leaflet-bar a:hover { background: #15223c; }
-
+ 
   @media (prefers-reduced-motion: reduce) {
     .oc-marker.live .ring, .c2-badge.live::before, .sync-item.bad, .tac-clock .time .colon { animation: none; }
   }
-
+ 
   /* ===== Ecrãs pequenos ===== */
   @media (max-width: 1024px) {
     html, body { height: auto; min-height: 100%; overflow-y: auto; overflow-x: hidden; }
@@ -336,7 +342,7 @@
 </head>
 <body>
 <div class="app-layout">
-
+ 
   <header class="c2-header">
     <div class="brand-group">
       <div class="tac-crest" title="Batalhão de Sapadores Bombeiros de Braga">
@@ -363,7 +369,7 @@
       </div>
     </div>
   </header>
-
+ 
   <section class="filter-bar" aria-label="Filtros">
     <label class="f-lbl" for="fDistrito">Distrito</label>
     <select id="fDistrito"><option value="">Todos</option></select>
@@ -378,7 +384,7 @@
       <span class="sum-chip"><b id="tAer">–</b>aéreos</span>
     </div>
   </section>
-
+ 
   <main class="c2-grid">
     <section class="c2-panel" id="panel-lista">
       <div class="c2-panel-head">
@@ -391,8 +397,9 @@
       <div class="c2-panel-body" id="lista">
         <div class="empty-state">A ligar ao feed de ocorrências…</div>
       </div>
+      <div class="fonte-dados" id="fonte-dados">Fonte: ANEPC</div>
     </section>
-
+ 
     <section class="c2-panel" id="panel-mapa">
       <div class="c2-panel-head">
         <div class="panel-title-wrap">
@@ -414,7 +421,7 @@
     </section>
   </main>
 </div>
-
+ 
 <script>
 /* ===================== CONFIGURAÇÃO ===================== */
 const CONFIG = {
@@ -432,7 +439,7 @@ const CONFIG = {
   limitesMapa: [[41.47, -8.53], [41.62, -8.31]],
   atualizarCada: 60 // segundos
 };
-
+ 
 /* ===================== RELÓGIO (igual à dashboard) ===================== */
 function tickClock(){
   const now = new Date(), p2 = n => String(n).padStart(2, '0'), $ = id => document.getElementById(id);
@@ -444,7 +451,7 @@ function tickClock(){
   $('clock-year').textContent = now.getFullYear();
 }
 setInterval(tickClock, 1000); tickClock();
-
+ 
 /* ===================== UTILITÁRIOS ===================== */
 const $ = id => document.getElementById(id);
 const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
@@ -456,7 +463,7 @@ function capitalizar(s){
   return String(s || '').toLowerCase().split(/\s+/).filter(Boolean)
     .map((p, i) => (i > 0 && minus.includes(p)) ? p : p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
 }
-
+ 
 const CORES = { alerta:'#fbbf24', curso:'#f43f5e', resolucao:'#fb923c', vigilancia:'#38bdf8', outro:'#94a3b8' };
 function tipoEstado(estado){
   const e = norm(estado);
@@ -466,7 +473,7 @@ function tipoEstado(estado){
   if (e.includes('despacho') || e.includes('alerta')) return 'alerta';
   return 'outro';
 }
-
+ 
 function dataInicio(o){
   if (typeof o.datetime === 'string'){ const d = new Date(o.datetime); if (!isNaN(d)) return d; }
   if (o.dateTime && o.dateTime.sec) return new Date(o.dateTime.sec * 1000);
@@ -488,16 +495,16 @@ function duracao(d){
   return dias ? `${dias}d ${h}h` : `${h}h ${String(min).padStart(2,'0')}m`;
 }
 const horaCurta = d => d ? d.toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'}) : '';
-
+ 
 const ICON_FOGO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c1 3.5 5 5.5 5 10a5 5 0 01-10 0c0-2 1-3.5 2-4.5 0 2 1 3 2 3 0-3-1-5.5 1-8.5z"/></svg>';
 const ICON_ALERTA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01"/></svg>';
 const eIncendio = nat => /inc[eê]ndio|mato|florest|agr[ií]col|rescaldo|queima|fogo/i.test(nat || '');
-
+ 
 /* ===================== DADOS ===================== */
 let ocorrencias = [];
 let primeiraCarga = true;
 let selecionada = null;
-
+ 
 function normalizar(json){
   let arr = Array.isArray(json) ? json : (json.data || json.incidents || json.features || []);
   if (!Array.isArray(arr)) arr = Object.values(arr);
@@ -521,17 +528,20 @@ function normalizar(json){
       natureza: o.natureza || o.naturezaName || [o.type_code, o.type].filter(Boolean).join(' - '),
       estado: o.status || o.estado || '',
       operacionais: (o.man ?? o.operacionais ?? res.man ?? res.personnel) === undefined ? null : num(o.man ?? o.operacionais ?? res.man ?? res.personnel),
-      terrestres: num(o.terrain ?? o.meiosTerrestres ?? res.ground),
-      aereos: num(o.aerial ?? o.meiosAereos ?? res.aerial),
-      aquaticos: (o.meios_aquaticos ?? res.water) === undefined ? null : num(o.meios_aquaticos ?? res.water),
+      terrestres: num(o.terrestres ?? o.terrain ?? o.meiosTerrestres ?? res.ground),
+      aereos: num(o.aereos ?? o.aerial ?? o.meiosAereos ?? res.aerial),
+      aquaticos: (o.aquaticos ?? o.meios_aquaticos ?? res.water) === undefined ? null : num(o.aquaticos ?? o.meios_aquaticos ?? res.water),
+      importancia: o.importancia || '',
+      posit: o.posit || o.ultimoPosit || '',
       lat, lng,
       inicio: dataInicio(o)
     };
   }).filter(o => o.distrito || o.concelho);
 }
-
+ 
+let fonteAtual = '';
 async function obterDados(){
-  const urls = CONFIG.proxy ? [CONFIG.proxy] : CONFIG.urls;
+  const urls = (CONFIG.proxy ? [CONFIG.proxy] : []).concat(CONFIG.urls);
   let erro;
   for (const url of urls){
     try {
@@ -539,15 +549,17 @@ async function obterDados(){
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const json = await r.json();
       if (json && json.success === false && json.error) throw new Error(json.error);
+      fonteAtual = json.fonte || (url.includes('emcurso') ? 'ANEPC · via api.emcurso.pt'
+                 : url.includes('apiaberta') ? 'ANEPC · via API Aberta' : 'ANEPC');
       return normalizar(json);
     } catch (e){ erro = e; }
   }
   throw erro || new Error('Sem resposta');
 }
-
+ 
 /* ===================== FILTROS ===================== */
 const fD = $('fDistrito'), fC = $('fConcelho');
-
+ 
 function lerFiltrosURL(){
   const p = new URLSearchParams(location.search);
   return { distrito: p.get('distrito') ?? CONFIG.distritoPadrao, concelho: p.get('concelho') ?? CONFIG.concelhoPadrao };
@@ -581,18 +593,18 @@ fD.addEventListener('change', () => { atualizarSelects(fD.value, ''); gravarFilt
 fC.addEventListener('change', () => { gravarFiltrosURL(); desenhar(true); });
 $('btnLimpar').addEventListener('click', () => { atualizarSelects('', ''); gravarFiltrosURL(); desenhar(true); });
 $('btnAtualizar').addEventListener('click', () => carregar());
-
+ 
 function filtradas(){
   const d = norm(fD.value), c = norm(fC.value);
   return ocorrencias
     .filter(o => (!d || norm(o.distrito) === d) && (!c || norm(o.concelho) === c))
     .sort((a, b) => (b.inicio?.getTime() || 0) - (a.inicio?.getTime() || 0));
 }
-
+ 
 /* ===================== MAPA ===================== */
 let map = null, camadaMarcadores = null, camadaLimite = null, marcadores = {};
 let vista = 'braga';
-
+ 
 function iniciarMapa(){
   if (typeof L === 'undefined'){
     $('map').innerHTML = '<div class="empty-state"><strong>Mapa indisponível</strong>Não foi possível carregar a biblioteca do mapa.</div>';
@@ -610,7 +622,7 @@ function iniciarMapa(){
   camadaMarcadores = L.layerGroup().addTo(map);
   carregarLimite();
 }
-
+ 
 // Contorno do concelho (OpenStreetMap / Nominatim), guardado 30 dias no browser
 async function carregarLimite(){
   const chave = 'limite-concelho-' + norm(CONFIG.concelhoMapa);
@@ -644,7 +656,7 @@ async function carregarLimite(){
     if (vista === 'braga') map.fitBounds(camadaLimite.getBounds(), { padding: [12, 12] });
   }
 }
-
+ 
 function enquadrar(){
   if (!map) return;
   if (vista === 'braga'){
@@ -664,7 +676,7 @@ function mudarVista(v){
 }
 $('btnVistaBraga').addEventListener('click', () => mudarVista('braga'));
 $('btnVistaOc').addEventListener('click', () => mudarVista('oc'));
-
+ 
 function popupHTML(o){
   return `<div class="pop-t">${esc(o.concelho)}${o.freguesia ? ' · ' + esc(o.freguesia) : ''}</div>
     <div class="pop-s">${esc(o.natureza || '')}</div>
@@ -687,7 +699,7 @@ function desenharMapa(lista){
     marcadores[o.id] = m;
   });
 }
-
+ 
 /* ===================== LISTA ===================== */
 function selecionar(id, mover){
   selecionada = id;
@@ -697,7 +709,7 @@ function selecionar(id, mover){
   const m = marcadores[id];
   if (m && mover && map){ map.setView(m.getLatLng(), Math.max(map.getZoom(), 14)); m.openPopup(); }
 }
-
+ 
 function desenhar(reenquadrar, semMapa){
   const lista = filtradas();
   $('tOcorr').textContent = lista.length;
@@ -708,7 +720,7 @@ function desenhar(reenquadrar, semMapa){
   $('tAer').textContent = lista.reduce((s, o) => s + o.aereos, 0);
   $('lista-titulo').textContent = fC.value ? `Ocorrências · ${fC.value}` : fD.value ? `Ocorrências · Distrito ${fD.value}` : 'Ocorrências · Nacional';
   $('lista-count').textContent = lista.length ? `${lista.length} ativas` : '';
-
+ 
   if (!lista.length){
     $('lista').innerHTML = `<div class="empty-state"><strong>Sem ocorrências ativas</strong>${fD.value ? 'Nenhuma ocorrência registada nesta zona neste momento.' : 'Nenhuma ocorrência registada neste momento.'}</div>`;
   } else {
@@ -721,11 +733,13 @@ function desenhar(reenquadrar, semMapa){
         <div class="oc-content">
           <div class="oc-head">
             <span class="c2-badge${t === 'curso' ? ' live' : ''}">${esc(o.estado || 'Sem estado')}</span>
+            ${/signif|grave/i.test(o.importancia) ? `<span class="c2-badge imp">${esc(o.importancia)}</span>` : ''}
             ${o.lat === null ? '<span class="oc-nomap">sem coordenadas</span>' : ''}
             <span class="oc-time">${o.inicio ? `${horaCurta(o.inicio)} · há ${duracao(o.inicio)}` : ''}</span>
           </div>
           <div class="oc-title">${esc(o.concelho || '—')}${local ? ` <small>· ${local}</small>` : ''}${!fD.value ? ` <small>(${esc(o.distrito)})</small>` : ''}</div>
           <div class="oc-nat">${esc(o.natureza || 'Natureza não indicada')}</div>
+          ${o.posit ? `<div class="oc-posit">${esc(o.posit)}</div>` : ''}
           <div class="oc-res">
             ${tag(o.operacionais, '👨‍🚒', 'Operac.')}
             ${tag(o.terrestres, '🚒', 'Terrestres', 'meios')}
@@ -737,10 +751,11 @@ function desenhar(reenquadrar, semMapa){
     }).join('');
     document.querySelectorAll('.oc-card').forEach(el => el.addEventListener('click', () => selecionar(el.dataset.id, true)));
   }
+  if (fonteAtual) $('fonte-dados').textContent = `Fonte: ${fonteAtual}`;
   if (!semMapa) desenharMapa(lista);
   if (reenquadrar && vista === 'oc') enquadrar();
 }
-
+ 
 /* ===================== CICLO ===================== */
 let ultima = null;
 function estadoSync(cls, txt){
@@ -769,7 +784,7 @@ async function carregar(){
     }
   }
 }
-
+ 
 iniciarMapa();
 carregar();
 setInterval(carregar, CONFIG.atualizarCada * 1000);
@@ -777,3 +792,4 @@ setInterval(() => { if (ocorrencias.length) desenhar(false, true); }, 30000); //
 </script>
 </body>
 </html>
+ 
