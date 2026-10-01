@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-PT">
 <head>
@@ -428,8 +429,9 @@ const CONFIG = {
   urls: [
     'https://api.apiaberta.pt/v1/anpc/incidents/active'
   ],
-  // URL do Web App do Apps Script, se o browser bloquear os pedidos (CORS)
-  proxy: '',
+  // URL do Web App do Apps Script "Intermediario Fogos" (termina em /exec).
+  // É a fonte principal (API Fogos.pt com token); a API Aberta fica como reserva.
+  proxy: 'COLAR_AQUI_O_URL_EXEC',
   // Filtros usados quando o endereço não traz ?distrito=&concelho=
   distritoPadrao: 'Braga',
   concelhoPadrao: '',
@@ -506,7 +508,7 @@ let primeiraCarga = true;
 let selecionada = null;
  
 function normalizar(json){
-  let arr = Array.isArray(json) ? json : (json.data || json.incidents || json.features || []);
+  let arr = Array.isArray(json) ? json : (json.ocorrencias || json.data || json.incidents || json.features || []);
   if (!Array.isArray(arr)) arr = Object.values(arr);
   return arr.map(raw => {
     const o = raw.attributes || raw.properties || raw;
@@ -531,7 +533,7 @@ function normalizar(json){
       terrestres: num(o.terrestres ?? o.terrain ?? o.meiosTerrestres ?? res.ground),
       aereos: num(o.aereos ?? o.aerial ?? o.meiosAereos ?? res.aerial),
       aquaticos: (o.aquaticos ?? o.meios_aquaticos ?? res.water) === undefined ? null : num(o.aquaticos ?? o.meios_aquaticos ?? res.water),
-      importancia: o.importancia || '',
+      importancia: o.importancia || (o.important === true ? 'Significativa' : ''),
       posit: o.posit || o.ultimoPosit || '',
       lat, lng,
       inicio: dataInicio(o)
@@ -541,7 +543,8 @@ function normalizar(json){
  
 let fonteAtual = '';
 async function obterDados(){
-  const urls = (CONFIG.proxy ? [CONFIG.proxy] : []).concat(CONFIG.urls);
+  const temProxy = CONFIG.proxy && /\/exec(\?|$)/.test(CONFIG.proxy);
+  const urls = (temProxy ? [CONFIG.proxy] : []).concat(CONFIG.urls);
   let erro;
   for (const url of urls){
     try {
@@ -549,7 +552,9 @@ async function obterDados(){
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const json = await r.json();
       if (json && json.success === false && json.error) throw new Error(json.error);
-      fonteAtual = json.fonte || (url.includes('emcurso') ? 'ANEPC · via api.emcurso.pt'
+      if (json && json.ok === false) throw new Error(json.erro || 'Erro no intermediário');
+      fonteAtual = json.fonte || (url === CONFIG.proxy ? 'ANEPC · via Fogos.pt'
+                 : url.includes('emcurso') ? 'ANEPC · via api.emcurso.pt'
                  : url.includes('apiaberta') ? 'ANEPC · via API Aberta' : 'ANEPC');
       return normalizar(json);
     } catch (e){ erro = e; }
