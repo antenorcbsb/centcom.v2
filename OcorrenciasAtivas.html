@@ -419,8 +419,7 @@
 /* ===================== CONFIGURAÇÃO ===================== */
 const CONFIG = {
   urls: [
-    'https://api.fogos.pt/v2/incidents/active?all=1',
-    'https://api-dev.fogos.pt/new/fires'
+    'https://api.apiaberta.pt/v1/anpc/incidents/active'
   ],
   // URL do Web App do Apps Script, se o browser bloquear os pedidos (CORS)
   proxy: '',
@@ -469,6 +468,7 @@ function tipoEstado(estado){
 }
 
 function dataInicio(o){
+  if (typeof o.datetime === 'string'){ const d = new Date(o.datetime); if (!isNaN(d)) return d; }
   if (o.dateTime && o.dateTime.sec) return new Date(o.dateTime.sec * 1000);
   if (typeof o.dateTime === 'number') return new Date(o.dateTime * (o.dateTime < 1e12 ? 1000 : 1));
   if (o.date && o.hour){
@@ -504,21 +504,26 @@ function normalizar(json){
   return arr.map(raw => {
     const o = raw.attributes || raw.properties || raw;
     const g = raw.geometry || {};
-    let lat = flt(o.lat ?? o.latitude), lng = flt(o.lng ?? o.lon ?? o.longitude);
+    const loc = o.location && typeof o.location === 'object' ? o.location : {};
+    const res = o.resources || {};
+    // "Distrito, Concelho, Freguesia" (formato API Aberta)
+    const partes = String(loc.address || '').split(',').map(x => x.trim());
+    let lat = flt(o.lat ?? loc.lat ?? o.latitude), lng = flt(o.lng ?? loc.lng ?? o.lon ?? o.longitude);
     if ((lat === null || lng === null) && Array.isArray(g.coordinates)) { lng = flt(g.coordinates[0]); lat = flt(g.coordinates[1]); }
     if ((lat === null || lng === null) && g.x !== undefined) { lng = flt(g.x); lat = flt(g.y); }
     if (lat !== null && (Math.abs(lat) < 1 || Math.abs(lat) > 90)) lat = null;
     return {
       id: String(o.id || o.sadoId || o._id || o.numero || Math.random()),
-      distrito: capitalizar(o.district || o.distrito || ''),
-      concelho: capitalizar(o.concelho || ''),
-      freguesia: o.freguesia || '',
-      localidade: o.localidade || o.detailLocation || o.location || '',
-      natureza: o.natureza || o.naturezaName || '',
+      distrito: capitalizar(o.district || o.distrito || loc.district || partes[0] || ''),
+      concelho: capitalizar(o.concelho || loc.concelho || loc.municipality || partes[1] || ''),
+      freguesia: capitalizar(o.freguesia || loc.freguesia || ''),
+      localidade: o.localidade || o.detailLocation || (typeof o.location === 'string' ? o.location : '') || '',
+      natureza: o.natureza || o.naturezaName || [o.type_code, o.type].filter(Boolean).join(' - '),
       estado: o.status || o.estado || '',
-      operacionais: num(o.man ?? o.operacionais),
-      terrestres: num(o.terrain ?? o.meiosTerrestres),
-      aereos: num(o.aerial ?? o.meiosAereos),
+      operacionais: (o.man ?? o.operacionais ?? res.man ?? res.personnel) === undefined ? null : num(o.man ?? o.operacionais ?? res.man ?? res.personnel),
+      terrestres: num(o.terrain ?? o.meiosTerrestres ?? res.ground),
+      aereos: num(o.aerial ?? o.meiosAereos ?? res.aerial),
+      aquaticos: (o.meios_aquaticos ?? res.water) === undefined ? null : num(o.meios_aquaticos ?? res.water),
       lat, lng,
       inicio: dataInicio(o)
     };
@@ -532,7 +537,9 @@ async function obterDados(){
     try {
       const r = await fetch(url, {cache: 'no-store'});
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      return normalizar(await r.json());
+      const json = await r.json();
+      if (json && json.success === false && json.error) throw new Error(json.error);
+      return normalizar(json);
     } catch (e){ erro = e; }
   }
   throw erro || new Error('Sem resposta');
@@ -592,9 +599,12 @@ function iniciarMapa(){
     return;
   }
   map = L.map('map', { zoomControl: true, attributionControl: true, preferCanvas: false });
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    maxZoom: 19, subdomains: 'abcd',
-    attribution: '&copy; OpenStreetMap &copy; CARTO'
+  // Mapa base escuro da Esri (não precisa de chave) + camada de nomes
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 16, attribution: 'Esri, HERE, Garmin, &copy; OpenStreetMap'
+  }).addTo(map);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 16, pane: 'shadowPane'
   }).addTo(map);
   map.fitBounds(CONFIG.limitesMapa);
   camadaMarcadores = L.layerGroup().addTo(map);
@@ -659,7 +669,7 @@ function popupHTML(o){
   return `<div class="pop-t">${esc(o.concelho)}${o.freguesia ? ' · ' + esc(o.freguesia) : ''}</div>
     <div class="pop-s">${esc(o.natureza || '')}</div>
     <div class="pop-s">${esc(o.estado || '')}${o.inicio ? ' · desde ' + horaCurta(o.inicio) : ''}</div>
-    <div class="pop-m">👨‍🚒 ${o.operacionais} · 🚒 ${o.terrestres} · 🚁 ${o.aereos}</div>`;
+    <div class="pop-m">${o.operacionais !== null ? `👨‍🚒 ${o.operacionais} · ` : ''}🚒 ${o.terrestres} · 🚁 ${o.aereos}</div>`;
 }
 function desenharMapa(lista){
   if (!map) return;
@@ -685,13 +695,15 @@ function selecionar(id, mover){
   const card = document.querySelector(`.oc-card[data-id="${CSS.escape(id)}"]`);
   if (card && !mover) card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   const m = marcadores[id];
-  if (m && mover && map){ map.setView(m.getLatLng(), Math.max(map.getZoom(), 13)); m.openPopup(); }
+  if (m && mover && map){ map.setView(m.getLatLng(), Math.max(map.getZoom(), 14)); m.openPopup(); }
 }
 
 function desenhar(reenquadrar, semMapa){
   const lista = filtradas();
   $('tOcorr').textContent = lista.length;
-  $('tOper').textContent = lista.reduce((s, o) => s + o.operacionais, 0);
+  const temOper = ocorrencias.some(o => o.operacionais !== null);
+  $('tOper').parentElement.style.display = temOper ? '' : 'none';
+  $('tOper').textContent = lista.reduce((s, o) => s + (o.operacionais || 0), 0);
   $('tTerr').textContent = lista.reduce((s, o) => s + o.terrestres, 0);
   $('tAer').textContent = lista.reduce((s, o) => s + o.aereos, 0);
   $('lista-titulo').textContent = fC.value ? `Ocorrências · ${fC.value}` : fD.value ? `Ocorrências · Distrito ${fD.value}` : 'Ocorrências · Nacional';
@@ -703,7 +715,7 @@ function desenhar(reenquadrar, semMapa){
     $('lista').innerHTML = lista.map(o => {
       const t = tipoEstado(o.estado);
       const local = [o.freguesia, o.localidade && norm(o.localidade) !== norm(o.freguesia) ? o.localidade : ''].filter(Boolean).map(esc).join(', ');
-      const tag = (v, emoji, txt, cls) => `<span class="c2-tag ${cls || ''}${v ? '' : ' zero'}"><span class="emoji">${emoji}</span>${v} ${txt}</span>`;
+      const tag = (v, emoji, txt, cls) => v === null ? '' : `<span class="c2-tag ${cls || ''}${v ? '' : ' zero'}"><span class="emoji">${emoji}</span>${v} ${txt}</span>`;
       return `<button type="button" class="oc-card${o.id === selecionada ? ' sel' : ''}" data-id="${esc(o.id)}" style="--accent:${CORES[t]}">
         <div class="oc-icon">${eIncendio(o.natureza) ? ICON_FOGO : ICON_ALERTA}</div>
         <div class="oc-content">
@@ -718,6 +730,7 @@ function desenhar(reenquadrar, semMapa){
             ${tag(o.operacionais, '👨‍🚒', 'Operac.')}
             ${tag(o.terrestres, '🚒', 'Terrestres', 'meios')}
             ${tag(o.aereos, '🚁', 'Aéreos', 'meios')}
+            ${o.aquaticos ? tag(o.aquaticos, '🚤', 'Aquáticos', 'meios') : ''}
           </div>
         </div>
       </button>`;
