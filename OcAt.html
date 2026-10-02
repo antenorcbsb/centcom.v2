@@ -101,6 +101,13 @@ body{
 @keyframes pisca{to{visibility:hidden}}
 @keyframes destaque{50%{background:rgba(229,72,59,.35)}}
 .marcador.viz .ponto{inset:5px;opacity:.75;border-width:1.5px}
+.rotulo-freg{background:none;border:0}
+.rotulo-freg span{
+  display:block;transform:translate(-50%,-50%);width:max-content;max-width:110px;text-align:center;
+  font-family:var(--corpo);font-size:10.5px;font-weight:600;line-height:1.15;color:#16324F;
+  text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 3px #fff;pointer-events:none
+}
+.rotulo-freg.realce span{font-size:12.5px;color:#0B4FB3}
 @media (prefers-reduced-motion:reduce){.nova,.oc.alerta{animation:none}}
  
 .lista{flex:1 1 auto;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px}
@@ -329,7 +336,7 @@ setInterval(relogio,1000); relogio();
  
 /* ---------- Mapa (vista bloqueada) ---------- */
 const mapa = L.map('mapa',{
-  zoomControl:false, dragging:false, scrollWheelZoom:false, doubleClickZoom:false,
+  zoomControl:false, dragging:false, scrollWheelZoom:false, doubleClickZoom:false, zoomSnap:0.1,
   boxZoom:false, keyboard:false, touchZoom:false, tap:false, attributionControl:true
 });
 /* Fundos de mapa sem chave: OpenStreetMap; se falhar, Esri World Street Map */
@@ -350,7 +357,7 @@ usarFundo(0);
  
 let limites = L.latLngBounds(CONFIG.LIMITES_RESERVA);
 let contorno = null;
-function enquadrar(){ mapa.invalidateSize(); mapa.fitBounds(window._vista || limites,{padding:[18,18]}); }
+function enquadrar(){ mapa.invalidateSize(); mapa.fitBounds(window._vista || limites,{padding:[8,8]}); }
 enquadrar();
 window.addEventListener('resize', () => { clearTimeout(window._rz); window._rz = setTimeout(enquadrar,150); });
  
@@ -392,7 +399,23 @@ async function carregarContorno(){
  
 function desenharContorno(gj){
   try{
-    contorno = L.geoJSON(gj,{style:{color:cssVar('--azul'),weight:3,fill:true,fillOpacity:.04,interactive:false}}).addTo(mapa);
+    contorno = L.geoJSON(gj,{style:{color:cssVar('--azul'),weight:3,fill:false,interactive:false}}).addTo(mapa);
+    // máscara: escurece tudo o que está fora do concelho
+    const aneis = [];
+    const juntar = g => {
+      if (!g) return;
+      if (g.type === 'FeatureCollection') g.features.forEach(f => juntar(f.geometry));
+      else if (g.type === 'Feature') juntar(g.geometry);
+      else if (g.type === 'Polygon') aneis.push(g.coordinates[0]);
+      else if (g.type === 'MultiPolygon') g.coordinates.forEach(pl => aneis.push(pl[0]));
+    };
+    juntar(gj);
+    if (aneis.length){
+      const mundo = [[85,-180],[85,180],[-85,180],[-85,-180]];
+      L.polygon([mundo, ...aneis.map(a => a.map(([x,y]) => [y,x]))],
+        {stroke:false, fillColor:'#0D1826', fillOpacity:.55, interactive:false}).addTo(mapa);
+      contorno.bringToFront();
+    }
     const b = contorno.getBounds(); if (b.isValid()){ limites = b; enquadrar(); }
   }catch(e){}
 }
@@ -711,8 +734,9 @@ function desenhar(){
       L.polyline([[q.lat,q.lng],[o.lat,o.lng]],{color:cssVar('--azul'),weight:2,dashArray:'6 6',interactive:false}).addTo(camadaLinhas));
   });
 
-  // vista: Braga, ou Braga + ocorrências vizinhas
-  let vista = limites;
+  // vista: freguesia escolhida, Braga, ou Braga + ocorrências vizinhas
+  realcarFreguesia(filtro);
+  let vista = (filtro && geoFreg[filtro] && geoFreg[filtro].bounds) ? geoFreg[filtro].bounds : limites;
   const pts = listaV.filter(x => x.o.lat != null && x.o.lng != null).map(x => [x.o.lat, x.o.lng]);
   if (pts.length) vista = L.latLngBounds(limites.getSouthWest(), limites.getNorthEast()).extend(L.latLngBounds(pts));
   const chave = vista.toBBoxString();
@@ -729,9 +753,76 @@ function selecionar(id, abrirPopup){
   if (b) b.scrollIntoView({block:'nearest'});
 }
 
+/* ---------- Limites e nomes das freguesias (OpenStreetMap) ---------- */
+const camadaFreg = L.layerGroup().addTo(mapa);
+const geoFreg = {};   // nome canónico -> {linhas:[L.polyline], rotulo:L.marker, bounds}
+const nomeCurto = n => n.replace(/^Braga \((.*)\)$/,'$1');
+
+async function carregarFreguesias(){
+  let lista = null;
+  try{
+    const c = JSON.parse(localStorage.getItem('braga_freguesias_v1') || 'null');
+    if (c && Date.now() - c.t < 60*864e5) lista = c.l;
+  }catch(e){}
+  if (!lista){
+    try{
+      const q = '[out:json][timeout:60];area["boundary"="administrative"]["admin_level"="7"]["name"="Braga"]->.m;'
+              + 'rel(area.m)["boundary"="administrative"]["admin_level"="8"];out geom;';
+      const r = await fetch('https://overpass-api.de/api/interpreter', {method:'POST', body:'data=' + encodeURIComponent(q)});
+      const j = await r.json();
+      lista = (j.elements||[]).filter(e => e.type === 'relation' && e.tags && e.tags.name).map(rel => {
+        const linhas = []; let lbl = null;
+        (rel.members||[]).forEach(m => {
+          if (m.type === 'way' && m.geometry && m.role !== 'subarea')
+            linhas.push(m.geometry.map(p => [+p.lat.toFixed(5), +p.lon.toFixed(5)]));
+          if (m.type === 'node' && !lbl && (m.role === 'label' || m.role === 'admin_centre') && m.lat != null)
+            lbl = [m.lat, m.lon];
+        });
+        if (!lbl && rel.bounds) lbl = [(rel.bounds.minlat+rel.bounds.maxlat)/2, (rel.bounds.minlon+rel.bounds.maxlon)/2];
+        return {n: fregCanonica(rel.tags.name), l: linhas, c: lbl};
+      }).filter(f => f.l.length);
+      if (lista.length) { try{ localStorage.setItem('braga_freguesias_v1', JSON.stringify({t:Date.now(), l:lista})); }catch(e){} }
+    }catch(e){ lista = null; }
+  }
+  if (lista) desenharFreguesias(lista);
+}
+
+function desenharFreguesias(lista){
+  camadaFreg.clearLayers();
+  lista.forEach(f => {
+    const linhas = f.l.map(l => L.polyline(l, {color:'#24507F', weight:1.4, opacity:.75, dashArray:'5 4', interactive:false}).addTo(camadaFreg));
+    let bounds = null;
+    linhas.forEach(pl => { bounds = bounds ? bounds.extend(pl.getBounds()) : pl.getBounds(); });
+    const rotulo = f.c ? L.marker(f.c, {
+      icon: L.divIcon({className:'rotulo-freg', iconSize:null, html:`<span>${esc(nomeCurto(f.n))}</span>`}),
+      interactive:false, keyboard:false, zIndexOffset:-500
+    }).addTo(camadaFreg) : null;
+    geoFreg[f.n] = {linhas, rotulo, bounds};
+  });
+  if (contorno) contorno.bringToFront();
+  realcarFreguesia($('freguesia').value);
+}
+
+let fregRealcada = '';
+function realcarFreguesia(nome){
+  if (nome === fregRealcada) return;
+  const antiga = geoFreg[fregRealcada];
+  if (antiga){
+    antiga.linhas.forEach(pl => pl.setStyle({color:'#24507F', weight:1.4, opacity:.75, dashArray:'5 4'}));
+    if (antiga.rotulo) L.DomUtil.removeClass(antiga.rotulo.getElement() || document.createElement('i'), 'realce');
+  }
+  fregRealcada = nome;
+  const nova = geoFreg[nome];
+  if (nova){
+    nova.linhas.forEach(pl => { pl.setStyle({color:cssVar('--azul'), weight:3.5, opacity:1, dashArray:null}); pl.bringToFront(); });
+    if (nova.rotulo && nova.rotulo.getElement()) L.DomUtil.addClass(nova.rotulo.getElement(), 'realce');
+  }
+}
+
 /* ---------- Arranque ---------- */
 (async function(){
   await carregarContorno();
+  carregarFreguesias().then(() => desenhar());
   await carregarDados();
   setInterval(carregarDados, CONFIG.ATUALIZAR_SEG * 1000);
   setInterval(desenhar, 60000); // atualiza os "há X min"
