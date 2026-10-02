@@ -135,7 +135,8 @@ body{
 /* ============ ECRÃS PEQUENOS ============ */
 @media (max-width:820px){
   body{overflow:auto}
-  .corpo{grid-template-columns:1fr;grid-template-rows:auto 55vh}
+  .corpo{grid-template-columns:1fr;grid-template-rows:auto auto}
+  .mapa-wrap{height:55vh}
   .lateral{border-right:0;border-bottom:1px solid var(--linha)}
   .lista{max-height:none;overflow:visible}
   .mapa-wrap{order:-1}
@@ -330,13 +331,14 @@ function desenharContorno(gj){
  
 /* ---------- Dados ---------- */
 let ocorrencias = [];
+let jaRecebeuDados = false;
 let selecionada = null;
 const camada = L.layerGroup().addTo(mapa);
 const marcadores = {};
  
 async function carregarDados(){
   const el = $('estadoLigacao');
-  if (!CONFIG.ENDPOINT || CONFIG.ENDPOINT.startsWith('COLE_AQUI')){
+  if (!CONFIG.ENDPOINT || CONFIG.ENDPOINT.startsWith('https://script.google.com/macros/s/AKfycbzVvoPqEBcY0HkyDbSXyqSOCy3b4pTg7KEIBXsAo7qow5B8hjlM3-QdAckbgfySf2iupA/exec')){
     el.textContent = 'Falta o endereço /exec do intermediário em CONFIG.ENDPOINT.';
     el.className = 'estado-ligacao erro'; desenhar(); return;
   }
@@ -345,6 +347,7 @@ async function carregarDados(){
     const j = await (await fetch(url)).json();
     if (!j.ok) throw new Error(j.erro || 'Resposta inválida do intermediário.');
     ocorrencias = (j.ocorrencias||[]).filter(o => String(o.dico).padStart(4,'0') === CONFIG.DICO);
+    jaRecebeuDados = true;
     if (j.desatualizado){
       el.textContent = 'Dados de ' + hhmm(new Date(j.atualizado)) + ' — a fonte limitou os pedidos; nova tentativa automática.';
       el.className = 'estado-ligacao erro';
@@ -353,7 +356,11 @@ async function carregarDados(){
       el.className = 'estado-ligacao';
     }
   }catch(err){
-    el.textContent = 'Sem ligação ao intermediário (' + err.message + '). A mostrar os últimos dados recebidos.';
+    const limite = /429|limite/i.test(err.message);
+    el.textContent = (limite
+        ? 'A fonte Fogos.pt limitou os pedidos. ' + err.message.replace(/^.*?(até|depois das)\s*/i,'Nova tentativa depois das ').replace(/\.+\)?\.?$/,'') + '.'
+        : 'Erro ao ler os dados: ' + err.message)
+      + (jaRecebeuDados ? ' A mostrar os últimos dados recebidos.' : '');
     el.className = 'estado-ligacao erro';
   }
   atualizarFiltro(); desenhar();
@@ -388,7 +395,9 @@ function desenhar(){
  
   const el = $('lista');
   if (!lista.length){
-    el.innerHTML = `<div class="vazio"><strong>Sem ocorrências ativas</strong>${filtro ? 'nesta freguesia.' : 'no concelho de Braga neste momento.'}</div>`;
+    el.innerHTML = !jaRecebeuDados
+      ? `<div class="vazio"><strong>A aguardar dados</strong>A lista aparece assim que a fonte responder.</div>`
+      : `<div class="vazio"><strong>Sem ocorrências ativas</strong>${filtro ? 'nesta freguesia.' : 'no concelho de Braga neste momento.'}</div>`;
   } else {
     el.innerHTML = lista.map(({o,e}) => `
       <button class="oc${selecionada===o.id?' sel':''}" style="--c:${e.hex}" data-id="${esc(o.id)}">
