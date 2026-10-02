@@ -50,6 +50,22 @@ body{
 .titulos h1{font-family:var(--titulo);font-weight:700;font-size:26px;letter-spacing:.3px;line-height:1.05}
 .titulos p{color:var(--suave);font-size:14px}
 .relogio{margin-left:auto;text-align:right}
+.resumo{border-top:1px solid var(--linha);background:var(--painel);font-size:13px}
+.resumo summary{padding:8px 14px;cursor:pointer;font-weight:600}
+.resumo summary:focus-visible{outline:2px solid var(--azul);outline-offset:-2px}
+#resumoCorpo{padding:0 14px 10px;display:grid;grid-template-columns:1fr 1fr;gap:4px 14px;max-height:30vh;overflow:auto}
+#resumoCorpo h4{grid-column:span 1;font-family:var(--titulo);font-weight:600;font-size:13px;color:var(--suave);text-transform:uppercase;margin-top:4px}
+#resumoCorpo ul{list-style:none}
+#resumoCorpo li{display:flex;justify-content:space-between;gap:8px;padding:1px 0;border-bottom:1px dotted var(--linha)}
+#resumoCorpo li b{font-variant-numeric:tabular-nums}
+.avisos{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:52%}
+.avisos + .relogio{margin-left:14px}
+.aviso{font-size:12.5px;font-weight:600;padding:3px 9px;border-radius:4px;white-space:nowrap;cursor:default}
+.aviso.yellow{background:#F2D43A;color:#2a2200}
+.aviso.orange{background:var(--laranja);color:#1a0d00}
+.aviso.red{background:var(--vermelho);color:#fff}
+.aviso.nenhum{background:none;color:var(--suave);font-weight:500;padding-left:0}
+@media (max-width:820px){.avisos{display:none}}
 .relogio .hora{font-family:var(--titulo);font-weight:600;font-size:30px;line-height:1;font-variant-numeric:tabular-nums}
 .relogio .data{color:var(--suave);font-size:13px}
  
@@ -97,7 +113,10 @@ body{
   background:var(--vermelho);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:3px;
   animation:pisca 1s steps(2,start) infinite
 }
-.oc.alerta{animation:destaque 1.2s ease-in-out 4}
+.oc.alerta{animation:destaque 1.2s ease-in-out infinite}
+.oc.alerta.laranja{animation-name:destaqueL}
+@keyframes destaqueL{50%{background:rgba(240,125,43,.35)}}
+.nova.agravou{background:var(--laranja);color:#1a0d00}
 @keyframes pisca{to{visibility:hidden}}
 @keyframes destaque{50%{background:rgba(229,72,59,.35)}}
 .marcador.viz .ponto{inset:5px;opacity:.75;border-width:1.5px}
@@ -198,6 +217,7 @@ body{
     <h1>Ocorrências ativas</h1>
     <p>Concelho de Braga · CENTCOM</p>
   </div>
+  <div class="avisos" id="avisosIpma" aria-label="Avisos meteorológicos IPMA"></div>
   <div class="relogio">
     <div class="hora" id="hora">--:--:--</div>
     <div class="data" id="data"></div>
@@ -215,11 +235,16 @@ body{
     </div>
     <div class="acoes">
       <button type="button" class="btn" id="btnAlertas" aria-pressed="false">🔕 Ativar alertas</button>
+      <button type="button" class="btn" id="btnAproximar" aria-pressed="false">🔍 Aproximar</button>
       <button type="button" class="btn" id="btnVizinhos" aria-pressed="false">Concelhos vizinhos</button>
     </div>
     <div class="frescura" id="frescura" hidden></div>
     <div class="estado-ligacao" id="estadoLigacao">A ligar…</div>
     <div class="lista" id="lista" aria-live="polite"></div>
+    <details class="resumo" id="resumo" hidden>
+      <summary id="resumoTitulo">Resumo de hoje</summary>
+      <div id="resumoCorpo"></div>
+    </details>
     <div class="nota">Fonte: Fogos.pt (dados ANEPC). Apoio à consciência situacional — não substitui os canais oficiais nem o sistema de despacho.</div>
   </section>
  
@@ -258,7 +283,9 @@ const CONFIG = {
   // Concelhos vizinhos (botão "Concelhos vizinhos")
   VIZINHOS: { '0301':'Amares', '0302':'Barcelos', '0308':'Guimarães', '0309':'Póvoa de Lanhoso',
               '0312':'Vila Nova de Famalicão', '0313':'Vila Verde' },
-  ALERTA_NOVA_MIN: 10,          // minutos com a etiqueta "NOVA"
+  ALERTA_NOVA_MIN: 6,           // minutos com a etiqueta "NOVA" / "AGRAVOU"
+  PISCAR_SEG: 60,               // segundos com o cartão a piscar
+  AGRAVOU_OPERACIONAIS: 10,     // alerta de agravamento: aumento de operacionais igual ou superior
   DADOS_LARANJA_MIN: 10,        // aviso laranja: dados com mais de X min
   DADOS_VERMELHO_MIN: 20        // aviso vermelho: dados com mais de X min
 };
@@ -357,7 +384,7 @@ usarFundo(0);
  
 let limites = L.latLngBounds(CONFIG.LIMITES_RESERVA);
 let contorno = null;
-function enquadrar(){ mapa.invalidateSize(); mapa.fitBounds(window._vista || limites,{padding:[8,8]}); }
+function enquadrar(){ mapa.invalidateSize(); mapa.fitBounds(window._vista || limites,{padding:[30,30], maxZoom:16}); }
 enquadrar();
 window.addEventListener('resize', () => { clearTimeout(window._rz); window._rz = setTimeout(enquadrar,150); });
  
@@ -448,6 +475,9 @@ async function carregarDados(){
     jaRecebeuDados = true;
     horaDados = new Date(j.atualizado || Date.now()).getTime();
     verificarNovas();
+    verificarAgravamentos();
+    if (j.avisosIpma !== undefined) mostrarAvisos(j.avisosIpma);
+    if (j.resumoHoje !== undefined) mostrarResumo(j.resumoHoje);
     if (j.desatualizado){
       el.textContent = 'Dados de ' + hhmm(new Date(j.atualizado)) + ' — a fonte limitou os pedidos; nova tentativa automática.';
       el.className = 'estado-ligacao erro';
@@ -613,7 +643,7 @@ function verificarNovas(){
 function alertar(novas){
   tocar(3);
   novas.forEach(o => aPiscar.add(o.id));
-  setTimeout(() => { novas.forEach(o => aPiscar.delete(o.id)); desenhar(); }, 6000);
+  setTimeout(() => { novas.forEach(o => aPiscar.delete(o.id)); desenhar(); }, CONFIG.PISCAR_SEG * 1000);
   clearInterval(piscaTitulo);
   const aviso = '🔴 NOVA: ' + (novas[0].natureza || 'ocorrência') + (novas.length > 1 ? ' (+' + (novas.length-1) + ')' : '');
   let alt = false, n = 0;
@@ -626,6 +656,76 @@ function alertar(novas){
   if (piscaTitulo){ clearInterval(piscaTitulo); piscaTitulo = null; document.title = tituloOriginal; }
 }));
 const eNova = o => vistos[o.id] && (Date.now() - vistos[o.id]) < CONFIG.ALERTA_NOVA_MIN * 60000;
+
+/* ---------- Alerta de agravamento ---------- */
+let estadoAnt = {}, agravadas = {}, primeiraAgrav = true;
+try { estadoAnt = JSON.parse(localStorage.getItem('oc_estado') || '{}'); agravadas = JSON.parse(localStorage.getItem('oc_agravou') || '{}'); } catch(e){}
+function verificarAgravamentos(){
+  const agora = Date.now(), lista = [];
+  ocorrencias.forEach(o => {
+    const ant = estadoAnt[o.id];
+    if (ant && !primeiraAgrav){
+      const mais = (o.operacionais||0) - (ant.op||0);
+      const motivos = [];
+      if (mais >= CONFIG.AGRAVOU_OPERACIONAIS) motivos.push(`+${mais} operacionais`);
+      if ((o.aereos||0) > (ant.ae||0)) motivos.push('meios aéreos');
+      if (o.importante && !ant.imp) motivos.push('marcada como importante');
+      if (motivos.length){ agravadas[o.id] = {t:agora, m:motivos.join(', ')}; lista.push(o); }
+    }
+    estadoAnt[o.id] = {op:o.operacionais||0, ae:o.aereos||0, imp:!!o.importante, t:agora};
+  });
+  Object.keys(estadoAnt).forEach(k => { if (agora - estadoAnt[k].t > 3*864e5) delete estadoAnt[k]; });
+  Object.keys(agravadas).forEach(k => { if (agora - agravadas[k].t > 864e5) delete agravadas[k]; });
+  try { localStorage.setItem('oc_estado', JSON.stringify(estadoAnt)); localStorage.setItem('oc_agravou', JSON.stringify(agravadas)); } catch(e){}
+  primeiraAgrav = false;
+  if (lista.length) alertarAgravamento(lista);
+}
+function alertarAgravamento(lista){
+  // som mais grave e longo, diferente do de nova ocorrência
+  if (alertasAtivos && audioCtx){
+    const t0 = audioCtx.currentTime + 0.05;
+    [0, 0.7].forEach(d => {
+      const osc = audioCtx.createOscillator(), g = audioCtx.createGain();
+      osc.type = 'sawtooth'; osc.frequency.value = 440;
+      g.gain.setValueAtTime(0.0001, t0+d);
+      g.gain.exponentialRampToValueAtTime(0.2, t0+d+0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0+d+0.55);
+      osc.connect(g).connect(audioCtx.destination); osc.start(t0+d); osc.stop(t0+d+0.56);
+    });
+  }
+  lista.forEach(o => aPiscar.add(o.id));
+  setTimeout(() => { lista.forEach(o => aPiscar.delete(o.id)); desenhar(); }, CONFIG.PISCAR_SEG * 1000);
+  clearInterval(piscaTitulo);
+  const aviso = '🟠 AGRAVOU: ' + (lista[0].natureza || 'ocorrência') + (lista.length > 1 ? ' (+' + (lista.length-1) + ')' : '');
+  let alt = false, n = 0;
+  piscaTitulo = setInterval(() => {
+    document.title = (alt = !alt) ? aviso : tituloOriginal;
+    if (++n > 240){ clearInterval(piscaTitulo); document.title = tituloOriginal; }
+  }, 1000);
+}
+const eAgravada = o => agravadas[o.id] && (Date.now() - agravadas[o.id].t) < CONFIG.ALERTA_NOVA_MIN * 60000;
+
+/* ---------- Avisos meteorológicos IPMA ---------- */
+const NIVEIS = {yellow:'amarelo', orange:'laranja', red:'vermelho'};
+const horaIpma = t => { if (!t) return ''; const d = new Date(t + 'Z'); return isNaN(d) ? '' : d.toLocaleString('pt-PT',{weekday:'short',hour:'2-digit',minute:'2-digit'}); };
+function mostrarAvisos(avisos){
+  const el = $('avisosIpma');
+  if (avisos === null){ el.innerHTML = ''; return; }
+  if (!avisos.length){ el.innerHTML = '<span class="aviso nenhum">Sem avisos IPMA para o distrito</span>'; return; }
+  el.innerHTML = avisos.map(a =>
+    `<span class="aviso ${esc(a.nivel)}" title="${esc((a.texto ? a.texto + ' — ' : '') + 'de ' + horaIpma(a.inicio) + ' a ' + horaIpma(a.fim))}">⚠ ${esc(a.tipo)} · ${esc(NIVEIS[a.nivel]||a.nivel)} até ${esc(horaIpma(a.fim))}</span>`
+  ).join('');
+}
+
+/* ---------- Resumo de hoje ---------- */
+function mostrarResumo(r){
+  const el = $('resumo');
+  if (!r){ el.hidden = true; return; }
+  el.hidden = false;
+  $('resumoTitulo').textContent = `Resumo de hoje: ${r.total} ocorrência${r.total===1?'':'s'} em Braga`;
+  const li = arr => arr.length ? '<ul>' + arr.map(([n,c]) => `<li><span>${esc(n)}</span><b>${c}</b></li>`).join('') + '</ul>' : '<ul><li><span>—</span></li></ul>';
+  $('resumoCorpo').innerHTML = `<div><h4>Por natureza</h4>${li(r.porNatureza)}</div><div><h4>Por freguesia</h4>${li(r.porFreguesia.map(([n,c]) => [fregCanonica(n), c]))}</div>`;
+}
 
 /* ---------- Aviso de dados desatualizados ---------- */
 function atualizarFrescura(){
@@ -644,6 +744,16 @@ function atualizarFrescura(){
   lista.classList.toggle('velha', classe === 'vermelho');
 }
 setInterval(atualizarFrescura, 30000);
+
+/* ---------- Aproximar às ocorrências ---------- */
+let aproximar = false;
+try { aproximar = localStorage.getItem('oc_aprox') === '1'; } catch(e){}
+const btnAproximar = $('btnAproximar');
+btnAproximar.addEventListener('click', () => {
+  aproximar = !aproximar;
+  try { localStorage.setItem('oc_aprox', aproximar ? '1' : '0'); } catch(e){}
+  desenhar();
+});
 
 /* ---------- Concelhos vizinhos ---------- */
 let mostrarVizinhos = false;
@@ -664,11 +774,11 @@ function itemHtml({o,e}, viz){
     ? [(CONFIG.VIZINHOS||{})[o.dico] || o.concelho, o.freguesia, o.localidade]
     : [o._freg || o.freguesia, o.localidade];
   return `
-      <button class="oc${viz?' viz':''}${selecionada===o.id?' sel':''}${aPiscar.has(o.id)?' alerta':''}" style="--c:${e.hex}" data-id="${esc(o.id)}">
+      <button class="oc${viz?' viz':''}${selecionada===o.id?' sel':''}${aPiscar.has(o.id)?' alerta':''}${aPiscar.has(o.id)&&eAgravada(o)&&!eNova(o)?' laranja':''}" style="--c:${e.hex}" data-id="${esc(o.id)}">
         <span class="faixa"></span>
         <span class="conteudo">
           <span class="topo">
-            <span class="natureza">${eNova(o)?'<span class="nova">NOVA</span>':''}${esc(o.natureza || 'Ocorrência')}</span>
+            <span class="natureza">${eNova(o)?'<span class="nova">NOVA</span>':(eAgravada(o)?`<span class="nova agravou" title="${esc(agravadas[o.id].m)}">AGRAVOU</span>`:'')}${esc(o.natureza || 'Ocorrência')}</span>
             <span class="chip">${esc(e.nome)}</span>
           </span>
           <span class="local" style="display:block">${esc(local.filter(Boolean).join(' — ') || 'Local não indicado')}</span>
@@ -737,8 +847,21 @@ function desenhar(){
   // vista: freguesia escolhida, Braga, ou Braga + ocorrências vizinhas
   realcarFreguesia(filtro);
   let vista = (filtro && geoFreg[filtro] && geoFreg[filtro].bounds) ? geoFreg[filtro].bounds : limites;
+  btnAproximar.setAttribute('aria-pressed', aproximar);
+  btnAproximar.textContent = aproximar ? '🔍 Aproximado' : '🔍 Aproximar';
+  if (aproximar){
+    const todasVis = [...listaB, ...listaV].map(x => x.o).filter(o => o.lat != null && o.lng != null);
+    const sel = todasVis.find(o => o.id === selecionada);
+    if (sel){
+      vista = L.latLng(sel.lat, sel.lng).toBounds(1500);           // ocorrência selecionada: ~1,5 km
+    } else if (todasVis.length === 1){
+      vista = L.latLng(todasVis[0].lat, todasVis[0].lng).toBounds(3000);
+    } else if (todasVis.length > 1){
+      vista = L.latLngBounds(todasVis.map(o => [o.lat, o.lng])).pad(0.2);
+    }
+  }
   const pts = listaV.filter(x => x.o.lat != null && x.o.lng != null).map(x => [x.o.lat, x.o.lng]);
-  if (pts.length) vista = L.latLngBounds(limites.getSouthWest(), limites.getNorthEast()).extend(L.latLngBounds(pts));
+  if (pts.length && !aproximar) vista = L.latLngBounds(limites.getSouthWest(), limites.getNorthEast()).extend(L.latLngBounds(pts));
   const chave = vista.toBBoxString();
   if (chave !== window._vistaChave){ window._vistaChave = chave; window._vista = vista; enquadrar(); }
 
