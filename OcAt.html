@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-PT">
 <head>
@@ -338,7 +339,7 @@ const marcadores = {};
  
 async function carregarDados(){
   const el = $('estadoLigacao');
-  if (!CONFIG.ENDPOINT || CONFIG.ENDPOINT.startsWith('https://script.google.com/macros/s/AKfycbzVvoPqEBcY0HkyDbSXyqSOCy3b4pTg7KEIBXsAo7qow5B8hjlM3-QdAckbgfySf2iupA/exec')){
+  if (!CONFIG.ENDPOINT || CONFIG.ENDPOINT.startsWith('COLE_AQUI')){
     el.textContent = 'Falta o endereço /exec do intermediário em CONFIG.ENDPOINT.';
     el.className = 'estado-ligacao erro'; desenhar(); return;
   }
