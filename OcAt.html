@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-PT">
 <head>
@@ -263,10 +264,21 @@ const mapa = L.map('mapa',{
   zoomControl:false, dragging:false, scrollWheelZoom:false, doubleClickZoom:false,
   boxZoom:false, keyboard:false, touchZoom:false, tap:false, attributionControl:true
 });
-L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{
-  subdomains:'abcd', maxZoom:19,
-  attribution:'&copy; OpenStreetMap &copy; CARTO'
-}).addTo(mapa);
+/* Fundos de mapa sem chave: OpenStreetMap; se falhar, Esri World Street Map */
+const FUNDOS = [
+  {url:'https://tile.openstreetmap.org/{z}/{x}/{y}.png', opt:{maxZoom:19, attribution:'&copy; OpenStreetMap'}},
+  {url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', opt:{maxZoom:19, attribution:'Tiles &copy; Esri'}}
+];
+let fundoAtual = 0, errosFundo = 0, camadaFundo = null;
+function usarFundo(i){
+  if (camadaFundo) mapa.removeLayer(camadaFundo);
+  fundoAtual = i; errosFundo = 0;
+  camadaFundo = L.tileLayer(FUNDOS[i].url, FUNDOS[i].opt).addTo(mapa);
+  camadaFundo.on('tileerror', () => {
+    if (++errosFundo >= 4 && fundoAtual < FUNDOS.length - 1) usarFundo(fundoAtual + 1);
+  });
+}
+usarFundo(0);
  
 let limites = L.latLngBounds(CONFIG.LIMITES_RESERVA);
 let contorno = null;
