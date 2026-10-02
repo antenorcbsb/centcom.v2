@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-PT">
 <head>
@@ -98,6 +99,16 @@ body{
 .oc .meio{display:inline-flex;align-items:center;gap:4px;font-variant-numeric:tabular-nums}
 .oc .meio svg{width:15px;height:15px;fill:var(--suave)}
 .oc .inicio{margin-left:auto;color:var(--suave)}
+.oc .dist{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap}
+.oc .q{font-size:12.5px;padding:2px 8px;border-radius:4px;background:var(--painel-2);border:1px solid var(--linha);font-variant-numeric:tabular-nums;color:var(--suave)}
+.oc .q b{color:var(--texto);font-weight:600;margin-right:4px}
+.oc .q.perto{border-color:var(--verde);color:var(--texto)}
+.oc .q.perto b{color:var(--verde)}
+.quartel{
+  font-family:var(--titulo);font-weight:700;font-size:13px;line-height:1;color:#fff;
+  background:#14324F;border:2px solid #fff;border-radius:4px;padding:4px 6px;
+  box-shadow:0 1px 4px rgba(0,0,0,.45);white-space:nowrap;transform:translate(-50%,-50%);display:inline-block
+}
  
 .vazio{margin:auto;text-align:center;color:var(--suave);padding:30px 16px}
 .vazio strong{display:block;font-family:var(--titulo);font-size:21px;color:var(--texto);margin-bottom:4px}
@@ -197,8 +208,26 @@ const CONFIG = {
   ATUALIZAR_SEG: 120,
   EMBLEMA: 'emblema.png',       // ficheiro do emblema no repositório
   // Limites aproximados do concelho (usados se o contorno não carregar)
-  LIMITES_RESERVA: [[41.465, -8.535], [41.625, -8.305]]
+  LIMITES_RESERVA: [[41.465, -8.535], [41.625, -8.305]],
+  // Quartéis: colar as coordenadas do Google Maps (clique direito no quartel > copiar números)
+  QUARTEIS: [
+    { sigla: 'BSB', nome: 'Batalhão de Sapadores Bombeiros de Braga', lat: 41.569028, lng: -8.427222 },
+    { sigla: 'BVB', nome: 'Bombeiros Voluntários de Braga',           lat: 41.519139, lng: -8.421139 }
+  ],
+  DISTANCIA_ESTRADA: true       // true = distância e tempo por estrada (OSRM); false = só linha reta
 };
+ 
+/* ---------- Freguesias do concelho de Braga (37) ---------- */
+const FREGUESIAS = [
+  'Adaúfe','Arentim e Cunha','Braga (Maximinos, Sé e Cividade)','Braga (São José de São Lázaro e São João do Souto)',
+  'Braga (São Vicente)','Braga (São Víctor)','Cabreiros e Passos (São Julião)','Celeirós, Aveleda e Vimieiro',
+  'Crespos e Pousada','Escudeiros e Penso (Santo Estêvão e São Vicente)','Espinho','Esporões',
+  'Este (São Pedro e São Mamede)','Ferreiros e Gondizalves','Figueiredo','Gualtar','Guisande e Oliveira (São Pedro)',
+  'Lamas','Lomar e Arcos','Merelim (São Paio), Panoias e Parada de Tibães','Merelim (São Pedro) e Frossos',
+  'Mire de Tibães','Morreira e Trandeiras','Nogueira, Fraião e Lamaçães','Nogueiró e Tenões','Padim da Graça',
+  'Palmeira','Pedralva','Priscos','Real, Dume e Semelhe','Ruilhe','Santa Lucrécia de Algeriz e Navarra',
+  'Sequeira','Sobreposta','Tadim','Tebosa','Vilaça e Fradelos'
+];
  
 /* ---------- Estados (códigos Fogos.pt) ---------- */
 const ESTADOS = {
@@ -363,29 +392,98 @@ async function carregarDados(){
       + (jaRecebeuDados ? ' A mostrar os últimos dados recebidos.' : '');
     el.className = 'estado-ligacao erro';
   }
-  atualizarFiltro(); desenhar();
+  atualizarFiltro(); desenhar(); calcularDistancias();
+}
+ 
+/* ---------- Freguesias: correspondência de nomes ---------- */
+const chaveFreg = n => norm(n).replace(/^uniao das freguesias de\s+/,'').replace(/^uf\s+/,'')
+  .replace(/[(),.\-]/g,' ').replace(/\s+/g,' ').trim();
+const CHAVES_FREG = FREGUESIAS.map(n => ({nome:n, k:chaveFreg(n)}));
+function fregCanonica(nome){
+  if (!nome) return '';
+  const k = chaveFreg(nome);
+  let f = CHAVES_FREG.find(x => x.k === k);
+  const palavra = (a, b) => new RegExp('(^| )' + b.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '( |$)').test(a);
+  if (!f && k.length >= 4) f = CHAVES_FREG.find(x => palavra(x.k, k) || palavra(k, x.k));
+  return f ? f.nome : nome;
 }
  
 /* ---------- Filtro por freguesia ---------- */
 function atualizarFiltro(){
   const sel = $('freguesia'), atual = sel.value;
-  const mapaNomes = new Map();
-  nomesFreguesias.forEach(n => mapaNomes.set(norm(n), n.replace(/^União das freguesias de\s+/i,'')));
-  ocorrencias.forEach(o => { if (o.freguesia && !mapaNomes.has(norm(o.freguesia))) mapaNomes.set(norm(o.freguesia), o.freguesia); });
   const contagem = {};
-  ocorrencias.forEach(o => { const k = norm(o.freguesia); contagem[k] = (contagem[k]||0) + 1; });
-  const ordenadas = [...mapaNomes.entries()].sort((a,b) => a[1].localeCompare(b[1],'pt'));
+  ocorrencias.forEach(o => { o._freg = fregCanonica(o.freguesia); contagem[o._freg] = (contagem[o._freg]||0) + 1; });
+  const nomes = new Set(FREGUESIAS);
+  ocorrencias.forEach(o => { if (o._freg) nomes.add(o._freg); });
+  const ordenadas = [...nomes].sort((a,b) => a.localeCompare(b,'pt'));
   sel.innerHTML = '<option value="">Todas as freguesias</option>' +
-    ordenadas.map(([k,n]) => `<option value="${esc(k)}">${esc(n)}${contagem[k]?' ('+contagem[k]+')':''}</option>`).join('');
-  sel.value = mapaNomes.has(atual) ? atual : '';
+    ordenadas.map(n => `<option value="${esc(n)}">${esc(n)}${contagem[n]?' ('+contagem[n]+')':''}</option>`).join('');
+  sel.value = nomes.has(atual) ? atual : '';
 }
 $('freguesia').addEventListener('change', () => { selecionada = null; desenhar(); });
+atualizarFiltro();
+ 
+/* ---------- Quartéis e distâncias ---------- */
+const quarteis = (CONFIG.QUARTEIS||[]).filter(q => isFinite(q.lat) && isFinite(q.lng) && q.lat !== null);
+const camadaQuarteis = L.layerGroup().addTo(mapa);
+quarteis.forEach(q => {
+  L.marker([q.lat,q.lng],{
+    icon:L.divIcon({className:'',iconSize:[0,0],html:`<span class="quartel">${esc(q.sigla)}</span>`}),
+    keyboard:false, zIndexOffset:-100
+  }).bindPopup(`<b>${esc(q.sigla)}</b><br>${esc(q.nome)}`,{autoPan:false}).addTo(camadaQuarteis);
+});
+ 
+const distCache = {};   // id -> [{km, min, estrada}] por quartel
+function linhaReta(a, b){
+  const R = 6371, r = x => x*Math.PI/180;
+  const dLat = r(b.lat-a.lat), dLng = r(b.lng-a.lng);
+  const h = Math.sin(dLat/2)**2 + Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dLng/2)**2;
+  return 2*R*Math.asin(Math.sqrt(h));
+}
+function distancias(o){
+  if (!quarteis.length || o.lat == null || o.lng == null) return null;
+  return distCache[o.id] || quarteis.map(q => ({km:linhaReta(q,o), min:null, estrada:false}));
+}
+async function calcularDistancias(){
+  if (!CONFIG.DISTANCIA_ESTRADA || !quarteis.length) return;
+  const falta = ocorrencias.filter(o => o.lat != null && o.lng != null && !distCache[o.id]);
+  if (!falta.length) return;
+  const pts = [...quarteis, ...falta].map(p => `${(+p.lng).toFixed(6)},${(+p.lat).toFixed(6)}`).join(';');
+  const src = quarteis.map((_,i) => i).join(';');
+  const dst = falta.map((_,i) => i + quarteis.length).join(';');
+  try{
+    const r = await fetch(`https://router.project-osrm.org/table/v1/driving/${pts}?sources=${src}&destinations=${dst}&annotations=distance,duration`);
+    const j = await r.json();
+    if (j.code !== 'Ok') throw new Error(j.code);
+    falta.forEach((o, d) => {
+      distCache[o.id] = quarteis.map((q, s) => {
+        const m = j.distances[s][d], t = j.durations[s][d];
+        return (m == null) ? {km:linhaReta(q,o), min:null, estrada:false} : {km:m/1000, min:t/60, estrada:true};
+      });
+    });
+    desenhar();
+  }catch(e){ /* sem rota: fica a linha reta */ }
+}
+const fmtKm = km => km.toLocaleString('pt-PT',{maximumFractionDigits:1, minimumFractionDigits:1});
+function htmlDist(o){
+  const d = distancias(o); if (!d) return '';
+  const crit = x => x.min ?? x.km;
+  const melhor = d.reduce((a,x,i) => crit(x) < crit(d[a]) ? i : a, 0);
+  return '<span class="dist">' + d.map((x,i) =>
+    `<span class="q${i===melhor?' perto':''}" title="${x.estrada?'Por estrada':'Em linha reta'}"><b>${esc(quarteis[i].sigla)}</b>${x.estrada?'':'≈ '}${fmtKm(x.km)} km${x.min!=null?' · '+Math.round(x.min)+' min':''}</span>`
+  ).join('') + '</span>';
+}
+function textoDist(o){
+  const d = distancias(o); if (!d) return '';
+  return d.map((x,i) => `${quarteis[i].sigla}: ${x.estrada?'':'≈ '}${fmtKm(x.km)} km${x.min!=null?' · '+Math.round(x.min)+' min':''}`).join('<br>');
+}
  
 /* ---------- Desenho da lista e do mapa ---------- */
+const camadaLinhas = L.layerGroup().addTo(mapa);
 function desenhar(){
   const filtro = $('freguesia').value;
   const lista = ocorrencias
-    .filter(o => !filtro || norm(o.freguesia) === filtro)
+    .filter(o => !filtro || (o._freg || fregCanonica(o.freguesia)) === filtro)
     .map(o => ({o, e:infoEstado(o)}))
     .sort((a,b) => a.e.ordem - b.e.ordem || String(b.o.inicio).localeCompare(String(a.o.inicio)));
  
@@ -407,18 +505,20 @@ function desenhar(){
             <span class="natureza">${esc(o.natureza || 'Ocorrência')}</span>
             <span class="chip">${esc(e.nome)}</span>
           </span>
-          <span class="local" style="display:block">${esc([o.freguesia, o.localidade].filter(Boolean).join(' — ') || 'Local não indicado')}</span>
+          <span class="local" style="display:block">${esc([o._freg || o.freguesia, o.localidade].filter(Boolean).join(' — ') || 'Local não indicado')}</span>
           <span class="rodape">
             <span class="meio" title="Operacionais">${ICONES.op}${o.operacionais}</span>
             <span class="meio" title="Meios terrestres">${ICONES.ter}${o.terrestres}</span>
             <span class="meio" title="Meios aéreos">${ICONES.aer}${o.aereos}</span>
             <span class="inicio">${esc(haQuanto(o.inicio))}</span>
           </span>
+          ${htmlDist(o)}
         </span>
       </button>`).join('');
   }
  
   camada.clearLayers();
+  camadaLinhas.clearLayers();
   Object.keys(marcadores).forEach(k => delete marcadores[k]);
   lista.forEach(({o,e}) => {
     if (o.lat == null || o.lng == null) return;
@@ -428,9 +528,12 @@ function desenhar(){
     });
     const m = L.marker([o.lat,o.lng],{icon, keyboard:false}).addTo(camada);
     const inicio = o.inicio ? new Date(o.inicio).toLocaleString('pt-PT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
-    m.bindPopup(`<b>${esc(o.natureza||'Ocorrência')}</b><br>${esc(e.nome)}<br>${esc([o.freguesia,o.localidade].filter(Boolean).join(' — '))}<br>Início: ${inicio}<br>Op. ${o.operacionais} · Terr. ${o.terrestres} · Aér. ${o.aereos}`,{autoPan:false});
+    const dist = textoDist(o);
+    m.bindPopup(`<b>${esc(o.natureza||'Ocorrência')}</b><br>${esc(e.nome)}<br>${esc([o._freg || o.freguesia,o.localidade].filter(Boolean).join(' — '))}<br>Início: ${inicio}<br>Op. ${o.operacionais} · Terr. ${o.terrestres} · Aér. ${o.aereos}${dist?'<br>'+dist:''}`,{autoPan:false});
     m.on('click', () => selecionar(o.id, false));
     marcadores[o.id] = m;
+    if (selecionada === o.id) quarteis.forEach(q =>
+      L.polyline([[q.lat,q.lng],[o.lat,o.lng]],{color:cssVar('--azul'),weight:2,dashArray:'6 6',interactive:false}).addTo(camadaLinhas));
   });
  
   el.querySelectorAll('.oc').forEach(b => b.addEventListener('click', () => selecionar(b.dataset.id, true)));
