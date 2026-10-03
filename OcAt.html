@@ -303,6 +303,7 @@ const CONFIG = {
   // Concelhos vizinhos (botão "Concelhos vizinhos")
   VIZINHOS: { '0301':'Amares', '0302':'Barcelos', '0308':'Guimarães', '0309':'Póvoa de Lanhoso',
               '0312':'Vila Nova de Famalicão', '0313':'Vila Verde' },
+  ZOOM_EXTRA: 0.4,              // zoom a mais na vista do concelho (0 = concelho inteiro; 0.2 a 0.8)
   COR_QUARTEIS: { BSB: '#2F7BF6', BVB: '#9B5DE5' },   // cores das zonas e etiquetas
   ALERTA_NOVA_MIN: 6,           // minutos com a etiqueta "NOVA" / "AGRAVOU"
   PISCAR_SEG: 60,               // segundos com o cartão a piscar
@@ -409,9 +410,13 @@ let contornoAneis = [];   // anéis do concelho em [lat,lng]
 function enquadrar(){
   ajustarLarguraMapa();
   mapa.invalidateSize();
-  mapa.fitBounds(window._vista || limites,{padding:[2,2], maxZoom:16});
+  mapa.fitBounds(window._vista || limites,{padding:[2,2], maxZoom:16, animate:false});
+  // vista do concelho: um pouco mais de zoom, centrado no concelho
+  if (vistaConcelho() && CONFIG.ZOOM_EXTRA)
+    mapa.setView(limites.getCenter(), mapa.getZoom() + CONFIG.ZOOM_EXTRA, {animate:false});
   setTimeout(arrumarRotulos, 50);
 }
+function vistaConcelho(){ return !window._vista || window._vista === limites || window._vista.equals(limites); }
 /* O painel do mapa fica com a proporção do concelho: o resto da largura vai para a lista */
 function ajustarLarguraMapa(){
   const wrap = document.querySelector('.mapa-wrap');
@@ -421,7 +426,8 @@ function ajustarLarguraMapa(){
   const proporcao = ((b.getEast() - b.getWest()) * Math.cos(latM)) / (b.getNorth() - b.getSouth());
   const h = wrap.clientHeight || window.innerHeight;
   const maxW = window.innerWidth - 340;
-  wrap.style.width = Math.round(Math.max(360, Math.min(maxW, h * proporcao + 12))) + 'px';
+  const extra = vistaConcelho() ? Math.pow(2, CONFIG.ZOOM_EXTRA || 0) : 1;
+  wrap.style.width = Math.round(Math.max(360, Math.min(maxW, h * proporcao * extra + 12))) + 'px';
 }
 enquadrar();
 window.addEventListener('resize', () => { clearTimeout(window._rz); window._rz = setTimeout(enquadrar,150); });
