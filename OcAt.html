@@ -169,9 +169,9 @@ body{
 .oc .q b{color:var(--texto);font-weight:600;margin-right:4px}
 .oc .q.perto{border-color:var(--verde);color:var(--texto)}
 .oc .q.perto b{color:var(--verde)}
-.legenda .zona{width:12px;height:12px;border-radius:2px;display:inline-block;background:var(--c);opacity:.75}
-.legenda .zona.linha{height:3px;width:16px;border-radius:2px;opacity:1}
-#legendaZonas{display:flex;flex-direction:column;gap:4px;padding-bottom:6px;margin-bottom:4px;border-bottom:1px solid var(--linha)}
+.legenda .zona{width:9px;height:9px;border-radius:2px;display:inline-block;background:var(--c);opacity:.8}
+.legenda .zona.linha{height:2px;width:10px;border-radius:1px;opacity:1}
+#legendaZonas{display:flex;flex-direction:column;gap:2px;padding-bottom:4px;margin-bottom:2px;border-bottom:1px solid var(--linha)}
 #legendaZonas small{color:var(--suave);font-size:11px}
 .quartel{
   font-family:var(--titulo);font-weight:700;font-size:13px;line-height:1;color:#fff;
@@ -195,12 +195,16 @@ body{
 .btn-centrar:focus-visible{outline:2px solid var(--azul);outline-offset:2px}
 .leaflet-control-zoom a{font-size:20px}
 .legenda{
-  position:absolute;right:12px;bottom:12px;z-index:500;background:rgba(19,34,53,.92);
-  border:1px solid var(--linha);border-radius:6px;padding:8px 12px;font-size:12.5px;
-  display:flex;flex-direction:column;gap:4px
+  position:absolute;right:8px;bottom:22px;z-index:500;background:rgba(19,34,53,.85);color:var(--texto);
+  border:1px solid var(--linha);border-radius:5px;font-size:11px;line-height:1.25;max-width:200px
 }
-.legenda span{display:flex;align-items:center;gap:7px}
-.legenda i{width:11px;height:11px;border-radius:50%;background:var(--c)}
+.legenda summary{cursor:pointer;padding:3px 8px;font-weight:600;color:var(--suave);list-style:none;user-select:none}
+.legenda summary::-webkit-details-marker{display:none}
+.legenda summary::before{content:'▸ ';}
+.legenda[open] summary::before{content:'▾ ';}
+.legenda-corpo{display:flex;flex-direction:column;gap:2px;padding:0 8px 6px}
+.legenda span{display:flex;align-items:center;gap:5px}
+.legenda i{width:8px;height:8px;border-radius:50%;background:var(--c);flex:0 0 auto}
  
 .marcador{position:relative;width:22px;height:22px}
 .marcador .ponto{
@@ -277,13 +281,16 @@ body{
     <div id="mapa"></div>
     <button type="button" class="btn-centrar" id="btnCentrar" title="Voltar à vista do concelho">⌖ Concelho</button>
     <div class="legenda-freg" id="legendaFreg" hidden></div>
-    <div class="legenda">
-      <div id="legendaZonas" hidden></div>
-      <span><i style="--c:var(--ambar)"></i>Despacho</span>
-      <span><i style="--c:var(--vermelho)"></i>Em curso / chegada ao TO</span>
-      <span><i style="--c:var(--verde)"></i>Em resolução / vigilância</span>
-      <span><i style="--c:var(--cinza)"></i>Conclusão</span>
-    </div>
+    <details class="legenda">
+      <summary title="Mostrar legenda">Legenda</summary>
+      <div class="legenda-corpo">
+        <div id="legendaZonas" hidden></div>
+        <span><i style="--c:var(--ambar)"></i>Despacho</span>
+        <span><i style="--c:var(--vermelho)"></i>Em curso / chegada ao TO</span>
+        <span><i style="--c:var(--verde)"></i>Resolução / vigilância</span>
+        <span><i style="--c:var(--cinza)"></i>Conclusão</span>
+      </div>
+    </details>
   </section>
 </main>
  
@@ -1175,9 +1182,10 @@ function desenharZonas(z){
   });
   const contagem = quarteis.map((_,i) => z.p.filter(p => p[2] === i).length);
   $('legendaZonas').innerHTML =
-    quarteis.map(q => `<span><i class="zona" style="--c:${(CONFIG.CINZA_ZONAS||{})[q.sigla] || '#9CA3AF'}"></i>Área mais perto do ${esc(q.sigla)}</span>`).join('')
-    + `<span><i class="zona linha" style="--c:${CONFIG.COR_LIMITE_ZONAS || '#6B7280'}"></i>Limite entre as áreas</span>`
-    + `<small>${quarteis.map((q,i) => `${esc(q.sigla)} ${Math.round(100*contagem[i]/z.p.length)}%`).join(' · ')} do concelho · ${z.e ? 'tempo por estrada' : 'linha reta'}</small>`;
+    quarteis.map(q => `<span><i class="zona" style="--c:${(CONFIG.CINZA_ZONAS||{})[q.sigla] || '#9CA3AF'}"></i>Área ${esc(q.sigla)}</span>`).join('')
+    + `<span><i class="zona linha" style="--c:${CONFIG.COR_LIMITE_ZONAS || '#6B7280'}"></i>Limite</span>`
+    ;
+  $('legendaZonas').title = quarteis.map((q,i) => `${q.sigla} ${Math.round(100*contagem[i]/z.p.length)}%`).join(' · ') + ' do concelho · ' + (z.e ? 'tempo por estrada' : 'linha reta');
   aplicarZonas();
 }
 
