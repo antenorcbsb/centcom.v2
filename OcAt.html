@@ -170,6 +170,7 @@ body{
 .oc .q.perto{border-color:var(--verde);color:var(--texto)}
 .oc .q.perto b{color:var(--verde)}
 .legenda .zona{width:12px;height:12px;border-radius:2px;display:inline-block;background:var(--c);opacity:.75}
+.legenda .zona.linha{height:3px;width:16px;border-radius:2px;opacity:1}
 #legendaZonas{display:flex;flex-direction:column;gap:4px;padding-bottom:6px;margin-bottom:4px;border-bottom:1px solid var(--linha)}
 #legendaZonas small{color:var(--suave);font-size:11px}
 .quartel{
@@ -186,7 +187,13 @@ body{
 /* ============ MAPA ============ */
 .mapa-wrap{position:relative;min-height:0}
 #mapa{position:absolute;inset:0;background:#dfe5ea}
-#mapa .leaflet-tile-pane{filter:saturate(.25) contrast(.88) brightness(1.04)}
+.btn-centrar{
+  position:absolute;top:10px;left:10px;z-index:600;background:#fff;color:#14202E;border:2px solid rgba(0,0,0,.2);
+  border-radius:6px;padding:5px 10px;font:600 13px var(--corpo);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.25)
+}
+.btn-centrar:hover{background:#f1f4f8}
+.btn-centrar:focus-visible{outline:2px solid var(--azul);outline-offset:2px}
+.leaflet-control-zoom a{font-size:20px}
 .legenda{
   position:absolute;right:12px;bottom:12px;z-index:500;background:rgba(19,34,53,.92);
   border:1px solid var(--linha);border-radius:6px;padding:8px 12px;font-size:12.5px;
@@ -253,7 +260,7 @@ body{
     </div>
     <div class="acoes">
       <button type="button" class="btn" id="btnAlertas" aria-pressed="false">🔕 Ativar alertas</button>
-      <button type="button" class="btn" id="btnZonas" aria-pressed="false">Zonas BSB / BVB</button>
+      <button type="button" class="btn" id="btnZonas" aria-pressed="false">Áreas BSB / BVB</button>
       <button type="button" class="btn" id="btnVizinhos" aria-pressed="false">Concelhos vizinhos</button>
     </div>
     <div class="frescura" id="frescura" hidden></div>
@@ -268,6 +275,7 @@ body{
  
   <section class="mapa-wrap" aria-label="Mapa do concelho de Braga">
     <div id="mapa"></div>
+    <button type="button" class="btn-centrar" id="btnCentrar" title="Voltar à vista do concelho">⌖ Concelho</button>
     <div class="legenda-freg" id="legendaFreg" hidden></div>
     <div class="legenda">
       <div id="legendaZonas" hidden></div>
@@ -304,7 +312,11 @@ const CONFIG = {
   VIZINHOS: { '0301':'Amares', '0302':'Barcelos', '0308':'Guimarães', '0309':'Póvoa de Lanhoso',
               '0312':'Vila Nova de Famalicão', '0313':'Vila Verde' },
   ZOOM_EXTRA: 0.4,              // zoom a mais na vista do concelho (0 = concelho inteiro; 0.2 a 0.8)
-  COR_QUARTEIS: { BSB: '#2F7BF6', BVB: '#9B5DE5' },   // cores das zonas e etiquetas
+  MOSTRAR_NOMES_FREGUESIAS: false,   // true = escreve o nome de cada freguesia no mapa
+  COR_LIMITE_ZONAS: '#6B7280',       // cinza da linha que separa as áreas do BSB e dos BVB
+  CINZA_ZONAS: { BSB: '#9CA3AF', BVB: '#4B5563' },   // cinza claro / cinza escuro das áreas
+  OPACIDADE_ZONAS: 0.22,             // 0 = sem preenchimento; 0.1 a 0.35
+  COR_QUARTEIS: { BSB: '#14324F', BVB: '#14324F' },   // cor das etiquetas dos quartéis
   ALERTA_NOVA_MIN: 6,           // minutos com a etiqueta "NOVA" / "AGRAVOU"
   PISCAR_SEG: 60,               // segundos com o cartão a piscar
   AGRAVOU_OPERACIONAIS: 10,     // alerta de agravamento: aumento de operacionais igual ou superior
@@ -383,11 +395,16 @@ setInterval(relogio,1000); relogio();
   img.src = CONFIG.EMBLEMA;
 })();
  
-/* ---------- Mapa (vista bloqueada) ---------- */
+/* ---------- Mapa (navegável: arrastar, zoom com roda/dedos/botões) ---------- */
 const mapa = L.map('mapa',{
-  zoomControl:false, dragging:false, scrollWheelZoom:false, doubleClickZoom:false, zoomSnap:0.1,
-  boxZoom:false, keyboard:false, touchZoom:false, tap:false, attributionControl:true
+  zoomControl:false, dragging:true, scrollWheelZoom:true, doubleClickZoom:true, zoomSnap:0.1, zoomDelta:0.5,
+  wheelPxPerZoomLevel:90, boxZoom:true, keyboard:true, touchZoom:true, attributionControl:true, maxZoom:19
 });
+L.control.zoom({position:'topright', zoomInTitle:'Aproximar', zoomOutTitle:'Afastar'}).addTo(mapa);
+// quando o operador mexe no mapa, a página deixa de reenquadrar sozinha
+let utilizadorMexeu = false;
+['dragstart'].forEach(ev => mapa.on(ev, () => { utilizadorMexeu = true; }));
+['wheel','touchstart','dblclick'].forEach(ev => document.getElementById('mapa').addEventListener(ev, () => { utilizadorMexeu = true; }, {passive:true}));
 /* Fundos de mapa sem chave: OpenStreetMap; se falhar, Esri World Street Map */
 const FUNDOS = [
   {url:'https://tile.openstreetmap.org/{z}/{x}/{y}.png', opt:{maxZoom:19, attribution:'&copy; OpenStreetMap'}},
@@ -485,7 +502,7 @@ function desenharContorno(gj){
     if (aneis.length){
       const mundo = [[85,-180],[85,180],[-85,180],[-85,-180]];
       L.polygon([mundo, ...aneis.map(a => a.map(([x,y]) => [y,x]))],
-        {stroke:false, fillColor:'#0D1826', fillOpacity:.55, interactive:false}).addTo(mapa);
+        {stroke:false, fillColor:'#0D1826', fillOpacity:.3, interactive:false}).addTo(mapa);
       contorno.bringToFront();
     }
     const b = contorno.getBounds(); if (b.isValid()){ limites = b; enquadrar(); }
@@ -566,7 +583,7 @@ function atualizarFiltro(){
     ordenadas.map(n => `<option value="${esc(n)}">${esc(n)}${contagem[n]?' ('+contagem[n]+')':''}</option>`).join('');
   sel.value = nomes.has(atual) ? atual : '';
 }
-$('freguesia').addEventListener('change', () => { selecionada = null; desenhar(); });
+$('freguesia').addEventListener('change', () => { selecionada = null; window._forcarVista = true; desenhar(); });
 atualizarFiltro();
 
 /* ---------- Quartéis e distâncias ---------- */
@@ -689,16 +706,22 @@ function alertar(novas){
   tocar(3);
   novas.forEach(o => aPiscar.add(o.id));
   setTimeout(() => { novas.forEach(o => aPiscar.delete(o.id)); desenhar(); }, CONFIG.PISCAR_SEG * 1000);
+  piscarTitulo('🔴 NOVA: ' + (novas[0].natureza || 'ocorrência') + (novas.length > 1 ? ' (+' + (novas.length-1) + ')' : ''));
+}
+let titulosAviso = [];
+function piscarTitulo(texto){
+  titulosAviso.push(texto);
   clearInterval(piscaTitulo);
-  const aviso = '🔴 NOVA: ' + (novas[0].natureza || 'ocorrência') + (novas.length > 1 ? ' (+' + (novas.length-1) + ')' : '');
-  let alt = false, n = 0;
+  let k = 0, n = 0;
+  const ciclo = [...titulosAviso, tituloOriginal];
+  document.title = ciclo[0];
   piscaTitulo = setInterval(() => {
-    document.title = (alt = !alt) ? aviso : tituloOriginal;
-    if (++n > 240){ clearInterval(piscaTitulo); document.title = tituloOriginal; }
+    document.title = ciclo[++k % ciclo.length];
+    if (++n > 240){ clearInterval(piscaTitulo); piscaTitulo = null; titulosAviso = []; document.title = tituloOriginal; }
   }, 1000);
 }
 ['click','keydown','focus'].forEach(ev => window.addEventListener(ev, () => {
-  if (piscaTitulo){ clearInterval(piscaTitulo); piscaTitulo = null; document.title = tituloOriginal; }
+  if (piscaTitulo){ clearInterval(piscaTitulo); piscaTitulo = null; titulosAviso = []; document.title = tituloOriginal; }
 }));
 const eNova = o => vistos[o.id] && (Date.now() - vistos[o.id]) < CONFIG.ALERTA_NOVA_MIN * 60000;
 
@@ -740,13 +763,7 @@ function alertarAgravamento(lista){
   }
   lista.forEach(o => aPiscar.add(o.id));
   setTimeout(() => { lista.forEach(o => aPiscar.delete(o.id)); desenhar(); }, CONFIG.PISCAR_SEG * 1000);
-  clearInterval(piscaTitulo);
-  const aviso = '🟠 AGRAVOU: ' + (lista[0].natureza || 'ocorrência') + (lista.length > 1 ? ' (+' + (lista.length-1) + ')' : '');
-  let alt = false, n = 0;
-  piscaTitulo = setInterval(() => {
-    document.title = (alt = !alt) ? aviso : tituloOriginal;
-    if (++n > 240){ clearInterval(piscaTitulo); document.title = tituloOriginal; }
-  }, 1000);
+  piscarTitulo('🟠 AGRAVOU: ' + (lista[0].natureza || 'ocorrência') + (lista.length > 1 ? ' (+' + (lista.length-1) + ')' : ''));
 }
 const eAgravada = o => agravadas[o.id] && (Date.now() - agravadas[o.id].t) < CONFIG.ALERTA_NOVA_MIN * 60000;
 
@@ -797,7 +814,7 @@ const btnVizinhos = $('btnVizinhos');
 btnVizinhos.addEventListener('click', () => {
   mostrarVizinhos = !mostrarVizinhos;
   try { localStorage.setItem('oc_vizinhos', mostrarVizinhos ? '1' : '0'); } catch(e){}
-  selecionada = null; desenhar();
+  selecionada = null; window._forcarVista = true; desenhar();
 });
 
 /* ---------- Desenho da lista e do mapa ---------- */
@@ -885,8 +902,12 @@ function desenhar(){
   const pts = listaV.filter(x => x.o.lat != null && x.o.lng != null).map(x => [x.o.lat, x.o.lng]);
   if (pts.length && !filtro) vista = L.latLngBounds(limites.getSouthWest(), limites.getNorthEast()).extend(L.latLngBounds(pts));
   const chave = vista.toBBoxString();
-  if (chave !== window._vistaChave){ window._vistaChave = chave; window._vista = vista; enquadrar(); }
-  else setTimeout(arrumarRotulos, 30);
+  if (chave !== window._vistaChave){
+    window._vistaChave = chave; window._vista = vista;
+    if (!utilizadorMexeu || window._forcarVista){ utilizadorMexeu = false; enquadrar(); }
+  }
+  window._forcarVista = false;
+  setTimeout(arrumarRotulos, 30);
 
   el.querySelectorAll('.oc').forEach(b => b.addEventListener('click', () => selecionar(b.dataset.id, true)));
 }
@@ -945,7 +966,7 @@ function desenharFreguesias(lista){
     const linhas = f.l.map(l => L.polyline(l, {color:'#1D4F91', weight:1.6, opacity:.9, interactive:false}).addTo(camadaFreg));
     let bounds = null;
     linhas.forEach(pl => { bounds = bounds ? bounds.extend(pl.getBounds()) : pl.getBounds(); });
-    const rotulo = f.c ? L.marker(f.c, {
+    const rotulo = (f.c && CONFIG.MOSTRAR_NOMES_FREGUESIAS) ? L.marker(f.c, {
       icon: L.divIcon({className:'rotulo-freg', iconSize:null, html:`<span>${esc(nomeCurto(f.n))}</span>`}),
       interactive:false, keyboard:false, zIndexOffset:-500
     }).addTo(camadaFreg) : null;
@@ -960,6 +981,7 @@ function desenharFreguesias(lista){
    tenta várias posições à volta do centro, depois letra mais pequena,
    e só em último caso um número com legenda no canto do mapa */
 function arrumarRotulos(){
+  if (!CONFIG.MOSTRAR_NOMES_FREGUESIAS){ $('legendaFreg').hidden = true; return; }
   const contagem = {};
   ocorrencias.forEach(o => { const n = o._freg || fregCanonica(o.freguesia); contagem[n] = (contagem[n]||0) + 1; });
   const area = b => b ? Math.abs((b.getNorth()-b.getSouth()) * (b.getEast()-b.getWest())) : 1;
@@ -1039,12 +1061,21 @@ function realcarFreguesia(nome){
 function corQuartel(q){ return (CONFIG.COR_QUARTEIS||{})[q.sigla] || '#14324F'; }
 mapa.createPane('zonas'); mapa.getPane('zonas').style.zIndex = 350;
 const camadaZonas = L.layerGroup();
+mapa.createPane('zonasFundo'); mapa.getPane('zonasFundo').style.zIndex = 340;
+const camadaZonasFundo = L.layerGroup();
+const ZOOM_SO_LINHA = 14.5;   // a partir deste zoom (ruas) o preenchimento cinza desaparece
+function zonasPorZoom(){
+  const ver = mostrarZonas && mapa.getZoom() < ZOOM_SO_LINHA;
+  if (ver) camadaZonasFundo.addTo(mapa); else mapa.removeLayer(camadaZonasFundo);
+}
+mapa.on('zoomend', zonasPorZoom);
 let mostrarZonas = true;
 try { mostrarZonas = localStorage.getItem('oc_zonas') !== '0'; } catch(e){}
 const btnZonas = $('btnZonas');
 function aplicarZonas(){
   btnZonas.setAttribute('aria-pressed', mostrarZonas);
   if (mostrarZonas) camadaZonas.addTo(mapa); else mapa.removeLayer(camadaZonas);
+  zonasPorZoom();
   $('legendaZonas').hidden = !mostrarZonas || !camadaZonas.getLayers().length;
 }
 btnZonas.addEventListener('click', () => {
@@ -1114,17 +1145,43 @@ async function calcularZonas(){
 function desenharZonas(z){
   camadaZonas.clearLayers();
   const [dLat, dLng] = z.s, render = L.canvas({pane:'zonas', padding:0.2});
-  z.p.forEach(([lat, lng, zi]) => {
+  // grelha indexada
+  const lat0 = Math.min(...z.p.map(p => p[0])), lng0 = Math.min(...z.p.map(p => p[1]));
+  const g = {};
+  const ij = (lat, lng) => [Math.round((lat - lat0) / dLat), Math.round((lng - lng0) / dLng)];
+  z.p.forEach(([lat, lng, zi]) => { const [a, b] = ij(lat, lng); g[a + ',' + b] = zi; });
+  const val = (a, b) => g[a + ',' + b];
+  const pos = (a, b) => [lat0 + a * dLat, lng0 + b * dLng];
+  const meio = (p1, p2) => [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2];
+  const estilo = {renderer:render, color:CONFIG.COR_LIMITE_ZONAS || '#6B7280', weight:3, opacity:.9, lineCap:'round', interactive:false};
+  // preenchimento cinza de cada área (só nas vistas afastadas; ao aproximar fica só a linha)
+  camadaZonasFundo.clearLayers();
+  const renderF = L.canvas({pane:'zonasFundo', padding:0.2});
+  if (CONFIG.OPACIDADE_ZONAS) z.p.forEach(([lat, lng, zi]) => {
     const q = quarteis[zi]; if (!q) return;
     L.rectangle([[lat - dLat/2, lng - dLng/2], [lat + dLat/2, lng + dLng/2]],
-      {renderer:render, stroke:false, fillColor:corQuartel(q), fillOpacity:.22, interactive:false}).addTo(camadaZonas);
+      {renderer:renderF, stroke:false, fillColor:(CONFIG.CINZA_ZONAS||{})[q.sigla] || '#9CA3AF', fillOpacity:CONFIG.OPACIDADE_ZONAS, interactive:false}).addTo(camadaZonasFundo);
+  });
+  // cada quadrado de 4 pontos vizinhos: liga os pontos médios das arestas onde a zona muda
+  Object.keys(g).forEach(k => {
+    const [a, b] = k.split(',').map(Number);
+    const v = [val(a,b), val(a,b+1), val(a+1,b+1), val(a+1,b)];
+    if (v.some(x => x === undefined)) return;
+    const c = [pos(a,b), pos(a,b+1), pos(a+1,b+1), pos(a+1,b)];
+    const pts = [];
+    for (let e = 0; e < 4; e++){ const f = (e + 1) % 4; if (v[e] !== v[f]) pts.push(meio(c[e], c[f])); }
+    if (pts.length === 2) L.polyline(pts, estilo).addTo(camadaZonas);
+    else if (pts.length === 4){ L.polyline([pts[0], pts[1]], estilo).addTo(camadaZonas); L.polyline([pts[2], pts[3]], estilo).addTo(camadaZonas); }
   });
   const contagem = quarteis.map((_,i) => z.p.filter(p => p[2] === i).length);
-  $('legendaZonas').innerHTML = quarteis.map((q,i) =>
-    `<span><i class="zona" style="--c:${corQuartel(q)}"></i>Mais perto do ${esc(q.sigla)} (${Math.round(100*contagem[i]/z.p.length)}%)</span>`).join('')
-    + `<small>${z.e ? 'Por tempo de viagem por estrada' : 'Em linha reta (rotas indisponíveis)'}</small>`;
+  $('legendaZonas').innerHTML =
+    quarteis.map(q => `<span><i class="zona" style="--c:${(CONFIG.CINZA_ZONAS||{})[q.sigla] || '#9CA3AF'}"></i>Área mais perto do ${esc(q.sigla)}</span>`).join('')
+    + `<span><i class="zona linha" style="--c:${CONFIG.COR_LIMITE_ZONAS || '#6B7280'}"></i>Limite entre as áreas</span>`
+    + `<small>${quarteis.map((q,i) => `${esc(q.sigla)} ${Math.round(100*contagem[i]/z.p.length)}%`).join(' · ')} do concelho · ${z.e ? 'tempo por estrada' : 'linha reta'}</small>`;
   aplicarZonas();
 }
+
+$('btnCentrar').addEventListener('click', () => { utilizadorMexeu = false; selecionada = null; enquadrar(); desenhar(); });
 
 /* ---------- Arranque ---------- */
 (async function(){
