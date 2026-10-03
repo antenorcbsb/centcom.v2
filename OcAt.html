@@ -70,7 +70,7 @@ body{
 .relogio .data{color:var(--suave);font-size:13px}
  
 /* ============ CORPO ============ */
-.corpo{flex:1 1 auto;display:grid;grid-template-columns:minmax(340px,1fr) auto;min-height:0}
+.corpo{flex:1 1 auto;display:grid;grid-template-columns:minmax(330px,1fr) auto;min-height:0}
 .lateral{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--linha)}
  
 .filtros{
@@ -122,11 +122,22 @@ body{
 .marcador.viz .ponto{inset:5px;opacity:.75;border-width:1.5px}
 .rotulo-freg{background:none;border:0}
 .rotulo-freg span{
-  display:block;transform:translate(-50%,-50%);width:max-content;max-width:92px;text-align:center;
+  display:block;width:max-content;max-width:96px;text-align:center;
   font-family:var(--corpo);font-size:10.5px;font-weight:700;line-height:1.12;color:#12355E;
   text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 3px #fff;pointer-events:none
 }
 .rotulo-freg span.oculto{visibility:hidden}
+.rotulo-freg span{transform:translate(calc(-50% + var(--dx,0px)), calc(-50% + var(--dy,0px)))}
+.rotulo-freg span.pequeno{font-size:9px}
+.rotulo-freg span.num{
+  width:17px;height:17px;max-width:none;border-radius:50%;background:#12355E;color:#fff;text-shadow:none;
+  font-size:10px;line-height:17px;padding:0
+}
+.legenda-freg{
+  position:absolute;left:10px;top:10px;z-index:500;background:rgba(19,34,53,.92);color:var(--texto);
+  border:1px solid var(--linha);border-radius:6px;padding:6px 10px;font-size:11.5px;line-height:1.45;max-width:46%
+}
+.legenda-freg b{display:inline-block;min-width:16px;color:var(--ambar)}
 .rotulo-freg.realce span{font-size:12.5px;color:#0B4FB3}
 @media (prefers-reduced-motion:reduce){.nova,.oc.alerta{animation:none}}
  
@@ -257,6 +268,7 @@ body{
  
   <section class="mapa-wrap" aria-label="Mapa do concelho de Braga">
     <div id="mapa"></div>
+    <div class="legenda-freg" id="legendaFreg" hidden></div>
     <div class="legenda">
       <div id="legendaZonas" hidden></div>
       <span><i style="--c:var(--ambar)"></i>Despacho</span>
@@ -397,7 +409,7 @@ let contornoAneis = [];   // anéis do concelho em [lat,lng]
 function enquadrar(){
   ajustarLarguraMapa();
   mapa.invalidateSize();
-  mapa.fitBounds(window._vista || limites,{padding:[6,6], maxZoom:16});
+  mapa.fitBounds(window._vista || limites,{padding:[2,2], maxZoom:16});
   setTimeout(arrumarRotulos, 50);
 }
 /* O painel do mapa fica com a proporção do concelho: o resto da largura vai para a lista */
@@ -408,7 +420,7 @@ function ajustarLarguraMapa(){
   const latM = (b.getNorth() + b.getSouth()) / 2 * Math.PI / 180;
   const proporcao = ((b.getEast() - b.getWest()) * Math.cos(latM)) / (b.getNorth() - b.getSouth());
   const h = wrap.clientHeight || window.innerHeight;
-  const maxW = window.innerWidth - 360;
+  const maxW = window.innerWidth - 340;
   wrap.style.width = Math.round(Math.max(360, Math.min(maxW, h * proporcao + 12))) + 'px';
 }
 enquadrar();
@@ -884,7 +896,13 @@ function selecionar(id, abrirPopup){
 /* ---------- Limites e nomes das freguesias (OpenStreetMap) ---------- */
 const camadaFreg = L.layerGroup().addTo(mapa);
 const geoFreg = {};   // nome canónico -> {linhas:[L.polyline], rotulo:L.marker, bounds}
-const nomeCurto = n => n.replace(/^Braga \((.*)\)$/,'$1');
+function nomeCurto(n){
+  let t = /^Braga \((.*)\)$/.test(n) ? n.replace(/^Braga \((.*)\)$/,'$1') : n.replace(/\s*\([^)]*\)/g,'');
+  t = t.replace(/\bSão /g,'S. ').replace(/\bSanta /g,'Sta. ').replace(/\bSanto /g,'Sto. ')
+       .replace(/^S\. José de S\. Lázaro e S\. João do Souto$/,'S. Lázaro e S. J. Souto')
+       .replace(/Parada de Tibães/,'Parada').replace(/ de Algeriz/,'').replace(/\s+,/g,',').trim();
+  return t;
+}
 
 async function carregarFreguesias(){
   let lista = null;
@@ -932,24 +950,66 @@ function desenharFreguesias(lista){
   setTimeout(arrumarRotulos, 50);
 }
 
-/* Mostra o máximo de nomes sem sobreposição: primeiro a freguesia escolhida,
-   depois as que têm ocorrências, depois as maiores */
+/* Coloca o nome de todas as freguesias sem sobreposição:
+   tenta várias posições à volta do centro, depois letra mais pequena,
+   e só em último caso um número com legenda no canto do mapa */
 function arrumarRotulos(){
   const contagem = {};
   ocorrencias.forEach(o => { const n = o._freg || fregCanonica(o.freguesia); contagem[n] = (contagem[n]||0) + 1; });
-  const area = b => b ? Math.abs((b.getNorth()-b.getSouth()) * (b.getEast()-b.getWest())) : 0;
+  const area = b => b ? Math.abs((b.getNorth()-b.getSouth()) * (b.getEast()-b.getWest())) : 1;
   const itens = Object.entries(geoFreg).filter(([,g]) => g.rotulo && g.rotulo.getElement())
-    .map(([n,g]) => ({n, el:g.rotulo.getElement().firstElementChild,
-      p:(n === fregRealcada ? 1e9 : 0) + (contagem[n] ? 1e6 * contagem[n] : 0) + area(g.bounds)*1e4}))
+    .map(([n,g]) => ({n, g, el:g.rotulo.getElement().firstElementChild}))
     .filter(x => x.el)
-    .sort((a,b) => b.p - a.p);
-  const colocados = [], m = 3;
+    // primeiro a escolhida, depois com ocorrências, depois as mais pequenas (têm menos espaço)
+    .sort((a,b) => (b.n === fregRealcada) - (a.n === fregRealcada) || (contagem[b.n]||0) - (contagem[a.n]||0) || area(a.g.bounds) - area(b.g.bounds));
+
+  const ocupados = [];
+  document.querySelectorAll('#mapa .quartel, #mapa .marcador').forEach(e => ocupados.push(e.getBoundingClientRect()));
+  const m = 2;
+  const choca = r => ocupados.some(c => !(r.right + m < c.left || r.left - m > c.right || r.bottom + m < c.top || r.top - m > c.bottom));
+  const dentroMapa = (r, mr) => r.left >= mr.left && r.right <= mr.right && r.top >= mr.top && r.bottom <= mr.bottom;
+  const mapaR = $('mapa').getBoundingClientRect();
+  const passos = [[0,0],[0,-11],[0,11],[-16,0],[16,0],[-14,-10],[14,-10],[-14,10],[14,10],[0,-20],[0,20],[-28,0],[28,0]];
+  const numerados = [];
+
   itens.forEach(x => {
-    x.el.classList.remove('oculto');
-    const r = x.el.getBoundingClientRect();
-    const choca = colocados.some(c => !(r.right + m < c.left || r.left - m > c.right || r.bottom + m < c.top || r.top - m > c.bottom));
-    if (choca) x.el.classList.add('oculto'); else colocados.push(r);
+    const el = x.el;
+    el.classList.remove('oculto','pequeno','num');
+    el.textContent = nomeCurto(x.n);
+    let colocado = false;
+    for (const tam of ['', 'pequeno']){
+      if (tam) el.classList.add(tam);
+      for (const [dx,dy] of passos){
+        el.style.setProperty('--dx', dx + 'px'); el.style.setProperty('--dy', dy + 'px');
+        const r = el.getBoundingClientRect();
+        if (!choca(r) && dentroMapa(r, mapaR)){ ocupados.push(r); colocado = true; break; }
+      }
+      if (colocado) break;
+    }
+    if (!colocado){
+      el.classList.remove('pequeno'); el.classList.add('num');
+      el.style.setProperty('--dx','0px'); el.style.setProperty('--dy','0px');
+      numerados.push(x);
+    }
   });
+
+  // números: também sem sobreposição; se nem assim couber, fica escondido
+  const leg = [];
+  numerados.sort((a,b) => a.n.localeCompare(b.n,'pt')).forEach((x, k) => {
+    const el = x.el;
+    el.textContent = String(k + 1);
+    let ok = false;
+    for (const [dx,dy] of passos){
+      el.style.setProperty('--dx', dx + 'px'); el.style.setProperty('--dy', dy + 'px');
+      const r = el.getBoundingClientRect();
+      if (!choca(r)){ ocupados.push(r); ok = true; break; }
+    }
+    if (!ok) el.classList.add('oculto');
+    leg.push(`<div><b>${k + 1}</b> ${esc(nomeCurto(x.n))}</div>`);
+  });
+  const lf = $('legendaFreg');
+  lf.hidden = !leg.length;
+  lf.innerHTML = leg.join('');
 }
 mapa.on('zoomend moveend', () => setTimeout(arrumarRotulos, 30));
 
