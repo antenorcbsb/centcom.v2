@@ -158,6 +158,9 @@ body{
 .oc .q b{color:var(--texto);font-weight:600;margin-right:4px}
 .oc .q.perto{border-color:var(--verde);color:var(--texto)}
 .oc .q.perto b{color:var(--verde)}
+.legenda .zona{width:12px;height:12px;border-radius:2px;display:inline-block;background:var(--c);opacity:.75}
+#legendaZonas{display:flex;flex-direction:column;gap:4px;padding-bottom:6px;margin-bottom:4px;border-bottom:1px solid var(--linha)}
+#legendaZonas small{color:var(--suave);font-size:11px}
 .quartel{
   font-family:var(--titulo);font-weight:700;font-size:13px;line-height:1;color:#fff;
   background:#14324F;border:2px solid #fff;border-radius:4px;padding:4px 6px;
@@ -239,6 +242,7 @@ body{
     </div>
     <div class="acoes">
       <button type="button" class="btn" id="btnAlertas" aria-pressed="false">🔕 Ativar alertas</button>
+      <button type="button" class="btn" id="btnZonas" aria-pressed="false">Zonas BSB / BVB</button>
       <button type="button" class="btn" id="btnVizinhos" aria-pressed="false">Concelhos vizinhos</button>
     </div>
     <div class="frescura" id="frescura" hidden></div>
@@ -254,6 +258,7 @@ body{
   <section class="mapa-wrap" aria-label="Mapa do concelho de Braga">
     <div id="mapa"></div>
     <div class="legenda">
+      <div id="legendaZonas" hidden></div>
       <span><i style="--c:var(--ambar)"></i>Despacho</span>
       <span><i style="--c:var(--vermelho)"></i>Em curso / chegada ao TO</span>
       <span><i style="--c:var(--verde)"></i>Em resolução / vigilância</span>
@@ -286,6 +291,7 @@ const CONFIG = {
   // Concelhos vizinhos (botão "Concelhos vizinhos")
   VIZINHOS: { '0301':'Amares', '0302':'Barcelos', '0308':'Guimarães', '0309':'Póvoa de Lanhoso',
               '0312':'Vila Nova de Famalicão', '0313':'Vila Verde' },
+  COR_QUARTEIS: { BSB: '#2F7BF6', BVB: '#9B5DE5' },   // cores das zonas e etiquetas
   ALERTA_NOVA_MIN: 6,           // minutos com a etiqueta "NOVA" / "AGRAVOU"
   PISCAR_SEG: 60,               // segundos com o cartão a piscar
   AGRAVOU_OPERACIONAIS: 10,     // alerta de agravamento: aumento de operacionais igual ou superior
@@ -387,6 +393,7 @@ usarFundo(0);
  
 let limites = L.latLngBounds(CONFIG.LIMITES_RESERVA);
 let contorno = null;
+let contornoAneis = [];   // anéis do concelho em [lat,lng]
 function enquadrar(){
   ajustarLarguraMapa();
   mapa.invalidateSize();
@@ -456,6 +463,7 @@ function desenharContorno(gj){
       else if (g.type === 'MultiPolygon') g.coordinates.forEach(pl => aneis.push(pl[0]));
     };
     juntar(gj);
+    contornoAneis = aneis.map(a => a.map(([x,y]) => [y,x]));
     if (aneis.length){
       const mundo = [[85,-180],[85,180],[-85,180],[-85,-180]];
       L.polygon([mundo, ...aneis.map(a => a.map(([x,y]) => [y,x]))],
@@ -548,7 +556,7 @@ const quarteis = (CONFIG.QUARTEIS||[]).filter(q => isFinite(q.lat) && isFinite(q
 const camadaQuarteis = L.layerGroup().addTo(mapa);
 quarteis.forEach(q => {
   L.marker([q.lat,q.lng],{
-    icon:L.divIcon({className:'',iconSize:[0,0],html:`<span class="quartel">${esc(q.sigla)}</span>`}),
+    icon:L.divIcon({className:'',iconSize:[0,0],html:`<span class="quartel" style="background:${corQuartel(q)}">${esc(q.sigla)}</span>`}),
     keyboard:false, zIndexOffset:-100
   }).bindPopup(`<b>${esc(q.sigla)}</b><br>${esc(q.nome)}`,{autoPan:false}).addTo(camadaQuarteis);
 });
@@ -961,10 +969,103 @@ function realcarFreguesia(nome){
   }
 }
 
+/* ---------- Zonas de proximidade dos quartéis (tempo por estrada) ---------- */
+function corQuartel(q){ return (CONFIG.COR_QUARTEIS||{})[q.sigla] || '#14324F'; }
+mapa.createPane('zonas'); mapa.getPane('zonas').style.zIndex = 350;
+const camadaZonas = L.layerGroup();
+let mostrarZonas = true;
+try { mostrarZonas = localStorage.getItem('oc_zonas') !== '0'; } catch(e){}
+const btnZonas = $('btnZonas');
+function aplicarZonas(){
+  btnZonas.setAttribute('aria-pressed', mostrarZonas);
+  if (mostrarZonas) camadaZonas.addTo(mapa); else mapa.removeLayer(camadaZonas);
+  $('legendaZonas').hidden = !mostrarZonas || !camadaZonas.getLayers().length;
+}
+btnZonas.addEventListener('click', () => {
+  mostrarZonas = !mostrarZonas;
+  try { localStorage.setItem('oc_zonas', mostrarZonas ? '1' : '0'); } catch(e){}
+  aplicarZonas();
+});
+
+function dentroConcelho(lat, lng){
+  if (!contornoAneis.length) return true;
+  let dentro = false;
+  contornoAneis.forEach(anel => {
+    for (let i = 0, j = anel.length - 1; i < anel.length; j = i++){
+      const [yi, xi] = anel[i], [yj, xj] = anel[j];
+      if (((yi > lat) !== (yj > lat)) && (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi)) dentro = !dentro;
+    }
+  });
+  return dentro;
+}
+
+const espera = ms => new Promise(r => setTimeout(r, ms));
+async function calcularZonas(){
+  if (quarteis.length < 2) return;
+  const chave = 'zonas_v1_' + quarteis.map(q => q.sigla + q.lat + ',' + q.lng).join('|');
+  let z = null;
+  try { z = JSON.parse(localStorage.getItem(chave) || 'null'); } catch(e){}
+  if (!z){
+    const dLat = 0.0036, dLng = 0.0048;     // grelha de ~400 m
+    const b = limites, pts = [];
+    for (let lat = b.getSouth() + dLat/2; lat < b.getNorth(); lat += dLat)
+      for (let lng = b.getWest() + dLng/2; lng < b.getEast(); lng += dLng)
+        if (dentroConcelho(lat, lng)) pts.push([+lat.toFixed(5), +lng.toFixed(5)]);
+    const zona = new Array(pts.length).fill(null), tempo = new Array(pts.length).fill(null);
+    const origens = quarteis.map(q => `${q.lng.toFixed(6)},${q.lat.toFixed(6)}`).join(';');
+    const src = quarteis.map((_,i) => i).join(';');
+    const LOTE = 98;
+    let estrada = true;
+    for (let k = 0; k < pts.length; k += LOTE){
+      const lote = pts.slice(k, k + LOTE);
+      const dst = lote.map((_,i) => i + quarteis.length).join(';');
+      try{
+        const r = await fetch(`https://router.project-osrm.org/table/v1/driving/${origens};${lote.map(p => `${p[1]},${p[0]}`).join(';')}?sources=${src}&destinations=${dst}&annotations=duration`);
+        const j = await r.json();
+        if (j.code !== 'Ok') throw new Error(j.code);
+        lote.forEach((p, d) => {
+          let melhor = null, mt = Infinity;
+          quarteis.forEach((q, s) => { const t = j.durations[s][d]; if (t != null && t < mt){ mt = t; melhor = s; } });
+          zona[k + d] = melhor; tempo[k + d] = isFinite(mt) ? Math.round(mt/60) : null;
+        });
+      }catch(e){ estrada = false; }
+      await espera(1100);   // respeitar o servidor público de rotas
+    }
+    // pontos sem rota: quartel mais próximo em linha reta
+    pts.forEach((p, i) => {
+      if (zona[i] == null){
+        let melhor = 0, md = Infinity;
+        quarteis.forEach((q, s) => { const d = linhaReta(q, {lat:p[0], lng:p[1]}); if (d < md){ md = d; melhor = s; } });
+        zona[i] = melhor;
+      }
+    });
+    z = {s:[dLat, dLng], e:estrada, p:pts.map((p,i) => [p[0], p[1], zona[i], tempo[i]])};
+    if (estrada) { try{ localStorage.setItem(chave, JSON.stringify(z)); }catch(e){} }
+  }
+  desenharZonas(z);
+}
+
+function desenharZonas(z){
+  camadaZonas.clearLayers();
+  const [dLat, dLng] = z.s, render = L.canvas({pane:'zonas', padding:0.2});
+  z.p.forEach(([lat, lng, zi]) => {
+    const q = quarteis[zi]; if (!q) return;
+    L.rectangle([[lat - dLat/2, lng - dLng/2], [lat + dLat/2, lng + dLng/2]],
+      {renderer:render, stroke:false, fillColor:corQuartel(q), fillOpacity:.22, interactive:false}).addTo(camadaZonas);
+  });
+  const contagem = quarteis.map((_,i) => z.p.filter(p => p[2] === i).length);
+  $('legendaZonas').innerHTML = quarteis.map((q,i) =>
+    `<span><i class="zona" style="--c:${corQuartel(q)}"></i>Mais perto do ${esc(q.sigla)} (${Math.round(100*contagem[i]/z.p.length)}%)</span>`).join('')
+    + `<small>${z.e ? 'Por tempo de viagem por estrada' : 'Em linha reta (rotas indisponíveis)'}</small>`;
+  aplicarZonas();
+}
+
 /* ---------- Arranque ---------- */
 (async function(){
   await carregarContorno();
   carregarFreguesias().then(() => desenhar());
+  aplicarZonas();
+  calcularZonas();
   await carregarDados();
   setInterval(carregarDados, CONFIG.ATUALIZAR_SEG * 1000);
   setInterval(desenhar, 60000); // atualiza os "há X min"
