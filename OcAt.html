@@ -192,7 +192,11 @@ main.corpo{flex:1 1 auto;display:grid;grid-template-columns:minmax(330px,1fr) au
 .oc:hover,.oc.sel{border-color:var(--tac-blue);border-left-color:var(--c);box-shadow:0 0 0 1px rgba(56,189,248,0.35),0 3px 14px rgba(0,0,0,0.32)}
 .oc:focus-visible{outline:2px solid var(--tac-blue);outline-offset:1px}
 .oc .faixa{display:none}
-.oc .conteudo{display:block;padding:8px 12px}
+.oc{display:flex;align-items:flex-start}
+.oc .oc-ico{flex:0 0 40px;width:40px;height:40px;margin:9px 0 0 10px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.45))}
+.oc .oc-ico svg{width:100%;height:100%;display:block}
+.oc .conteudo{display:block;flex:1 1 auto;min-width:0;padding:8px 12px 8px 10px}
+.oc.viz .oc-ico{flex-basis:32px;width:32px;height:32px}
 .oc .topo{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
 .oc .natureza{font-weight:700;font-size:14px;line-height:1.25;color:#fff}
 .oc .chip{
@@ -357,6 +361,62 @@ footer.c2-ticker{
   .lista{padding:10px}
   .nota{max-width:none;text-align:left}
 }
+
+/* ================= MODO SEM MAPA + CAIXAS COMPACTAS ================= */
+body.sem-mapa main.corpo{grid-template-columns:1fr}
+body.sem-mapa #painelMapa,body.sem-mapa #btnZonas{display:none}
+/* Cada caixa fica com a altura do seu conteúdo (não estica para igualar as vizinhas) */
+.lista{align-items:start;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:6px}
+.oc .oc-ico{flex-basis:34px;width:34px;height:34px;margin:7px 0 0 8px}
+.oc.viz .oc-ico{flex-basis:28px;width:28px;height:28px}
+.oc .conteudo{padding:6px 10px 6px 8px}
+.oc .topo{gap:6px}
+.oc .natureza{font-size:13px;line-height:1.2}
+.oc .chip{font-size:8.5px;padding:1px 6px}
+.oc .local{font-size:11px;margin-top:2px;line-height:1.25}
+.oc .rodape{gap:4px;margin-top:5px}
+.oc .meio{font-size:10.5px;padding:1px 5px;gap:3px}
+.oc .meio svg{width:11px;height:11px}
+.oc .dist{gap:4px;margin-top:4px}
+.oc .q{font-size:9.5px;padding:1px 5px}
+@media (max-width:820px){.lista{grid-template-columns:1fr}}
+
+/* ================= AVISO EM ECRÃ INTEIRO ================= */
+/* Ocorrência em destaque, grande; fundo com pulsação suave e transparente (sem pisca forte) */
+.aviso-ecra{position:fixed;inset:0;z-index:5000;display:flex;align-items:center;justify-content:center;padding:3vh 3vw;cursor:pointer;
+  font-family:inherit;background:rgba(4,8,16,0.55);animation:avFundo 1.6s ease-in-out infinite}
+.aviso-ecra[hidden]{display:none}
+.aviso-ecra.av-nova{--av:#ef4444;--av-tinta:rgba(239,68,68,0.20);--av-brilho:rgba(239,68,68,0.55)}
+.aviso-ecra.av-agravou{--av:#fb923c;--av-tinta:rgba(251,146,60,0.20);--av-brilho:rgba(251,146,60,0.55)}
+.aviso-ecra::before{content:'';position:absolute;inset:0;border:6px solid var(--av);pointer-events:none;animation:avBorda 1.6s ease-in-out infinite}
+@keyframes avFundo{0%,100%{background:rgba(4,8,16,0.55)}50%{background:var(--av-tinta)}}
+@keyframes avBorda{0%,100%{opacity:.25}50%{opacity:.9}}
+.av-caixa{width:min(1100px,94vw);max-height:94vh;overflow:hidden;background:rgba(13,22,38,0.90);border:2px solid var(--av);border-radius:22px;
+  padding:clamp(16px,2.4vh,28px) clamp(18px,2.6vw,36px);backdrop-filter:blur(6px);animation:avCaixa 1.6s ease-in-out infinite}
+@keyframes avCaixa{0%,100%{box-shadow:0 0 24px var(--av-tinta)}50%{box-shadow:0 0 70px var(--av-brilho)}}
+.av-titulo{font-weight:800;font-size:clamp(22px,3vw,40px);letter-spacing:.05em;color:var(--av);text-align:center;margin-bottom:clamp(8px,1.4vh,16px)}
+.av-oc{display:flex;gap:clamp(14px,2vw,28px);align-items:center;padding:clamp(10px,1.6vh,18px) 0;border-top:1px solid rgba(255,255,255,0.10)}
+.av-ico{flex:0 0 auto;width:clamp(72px,9vw,128px);height:clamp(72px,9vw,128px)}
+.av-ico svg{width:100%;height:100%;display:block;filter:drop-shadow(0 4px 10px rgba(0,0,0,.5))}
+.av-txt{display:flex;flex-direction:column;gap:clamp(3px,.6vh,8px);min-width:0}
+.av-txt b{font-size:clamp(26px,4vw,56px);color:#fff;line-height:1.1}
+.av-txt span{font-size:clamp(18px,2.4vw,32px);color:#e2e8f0;line-height:1.2}
+.av-txt small{font-family:var(--font-mono);font-size:clamp(13px,1.5vw,20px);color:#cbd5e1}
+/* com várias ocorrências, cada uma fica um pouco mais pequena */
+.av-caixa.varias .av-ico{width:clamp(56px,6vw,88px);height:clamp(56px,6vw,88px)}
+.av-caixa.varias .av-txt b{font-size:clamp(20px,2.8vw,38px)}
+.av-caixa.varias .av-txt span{font-size:clamp(15px,1.8vw,24px)}
+.av-mais{text-align:center;color:#cbd5e1;padding-top:8px;font-weight:700;font-size:clamp(14px,1.6vw,20px)}
+.av-fechar{text-align:center;margin-top:clamp(6px,1vh,12px);font-family:var(--font-mono);font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.1em}
+
+/* ================= AVISO DISCRETO DE ALTERAÇÃO DE MEIOS ================= */
+.oc .meio.mudou{position:relative}
+.oc .meio.mudou sup{font-size:9px;font-weight:800;margin-left:2px;line-height:1;vertical-align:4px}
+.oc .meio.sobe{border-color:rgba(251,191,36,0.75);background:rgba(251,191,36,0.14);animation:meioSobe 2s ease-in-out 3}
+.oc .meio.sobe sup{color:#fbbf24}
+.oc .meio.desce{border-color:rgba(148,163,184,0.6);background:rgba(148,163,184,0.10)}
+.oc .meio.desce sup{color:#94a3b8}
+@keyframes meioSobe{50%{box-shadow:0 0 0 3px rgba(251,191,36,0.25)}}
 </style>
 </head>
 <body>
@@ -380,6 +440,7 @@ footer.c2-ticker{
       <div class="sync-panel">
         <div class="sync-item wait" id="sync-dados" title="Última leitura com sucesso das ocorrências (Fogos.pt)"><span class="dot"></span><span class="lbl">Dados</span><span class="val">a ligar…</span></div>
         <button class="sync-item wake-btn warn" id="wake-btn" type="button" hidden title="Impede o ecrã de desligar ou entrar em poupança de energia"><span class="dot"></span><span class="lbl">Ecrã</span><span class="val">tocar p/ ativar</span></button>
+        <button class="sync-item wake-btn warn" id="som-btn" type="button" title="O navegador só deixa tocar som depois de um toque na página"><span class="dot"></span><span class="lbl">Som</span><span class="val">tocar p/ ativar</span></button>
       </div>
       <div class="tac-clock">
         <div class="cal-tile">
@@ -413,7 +474,6 @@ footer.c2-ticker{
         </select>
       </div>
       <div class="acoes">
-        <button type="button" class="btn" id="btnAlertas" aria-pressed="false">🔕 Ativar alertas</button>
         <button type="button" class="btn" id="btnZonas" aria-pressed="false">Áreas BSB / BVB</button>
         <button type="button" class="btn" id="btnVizinhos" aria-pressed="false">Concelhos vizinhos</button>
       </div>
@@ -453,6 +513,8 @@ footer.c2-ticker{
     </section>
   </main>
 
+  <div id="avisoEcra" class="aviso-ecra" hidden role="alert" aria-live="assertive"></div>
+
   <!-- RODAPÉ: AVISOS IPMA + FONTE -->
   <footer class="c2-ticker">
     <div class="ticker-badge">
@@ -474,6 +536,7 @@ const CONFIG = {
   // Endereço /exec do Apps Script "Intermediario Fogos"
   ENDPOINT: 'https://script.google.com/macros/s/AKfycbzVvoPqEBcY0HkyDbSXyqSOCy3b4pTg7KEIBXsAo7qow5B8hjlM3-QdAckbgfySf2iupA/exec',
   DICO: '0303',                 // concelho de Braga
+  MOSTRAR_MAPA: false,          // false = sem mapa: a lista ocupa a largura toda (true = volta a mostrar o mapa)
   ATUALIZAR_SEG: 120,
   EMBLEMA: '',                  // vazio = usa o emblema embutido (o mesmo da dashboard); ou nome de ficheiro, ex.: 'emblema.png'
   // Limites aproximados do concelho (usados se o contorno não carregar)
@@ -497,6 +560,10 @@ const CONFIG = {
   COR_QUARTEIS: { BSB: '#14324F', BVB: '#14324F' },   // cor das etiquetas dos quartéis
   ALERTA_NOVA_MIN: 6,           // minutos com a etiqueta "NOVA" / "AGRAVOU"
   PISCAR_SEG: 60,               // segundos com o cartão a piscar
+  MEIOS_MUDOU_MIN: 10,          // minutos em que a alteração de meios fica assinalada no cartão
+  AVISO_ECRA_SEG: 15,           // segundos do aviso em ecrã inteiro (0 = fica até alguém tocar)
+  NOTIFICACOES: true,           // notificação do sistema (Windows / Android), mesmo com a página minimizada
+  VIBRAR: true,                 // vibra no telemóvel Android
   AGRAVOU_OPERACIONAIS: 10,     // alerta de agravamento: aumento de operacionais igual ou superior
   DADOS_LARANJA_MIN: 10,        // aviso laranja: dados com mais de X min
   DADOS_VERMELHO_MIN: 20        // aviso vermelho: dados com mais de X min
@@ -558,6 +625,61 @@ const ICONES = {
   aer:'<svg viewBox="0 0 24 24"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>'
 };
  
+
+/* ---------- Modo sem mapa ---------- */
+if (CONFIG.MOSTRAR_MAPA === false) document.body.classList.add('sem-mapa');
+
+/* ---------- Ícones por tipo de ocorrência (natureza) ---------- */
+const ICONES_NATUREZA = {
+"colisao_rodoviaria": "<svg viewBox=\"0 0 64 64\" aria-hidden=\"true\"><defs><linearGradient id=\"ocg_rod\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#F2994A\"/><stop offset=\"1\" stop-color=\"#C4570F\"/></linearGradient></defs><rect x=\"1\" y=\"1\" width=\"62\" height=\"62\" rx=\"14\" fill=\"url(#ocg_rod)\"/><rect x=\"1.5\" y=\"1.5\" width=\"61\" height=\"61\" rx=\"13.5\" fill=\"none\" stroke=\"#fff\" stroke-opacity=\".25\"/><g transform=\"translate(6,6) scale(0.8125)\"><g transform=\"translate(-4,6) scale(0.95)\"><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M8 42 V36 Q8 33 11 32 L17 31 L23 24 Q25 22 28 22 H39 Q42 22 44 24 L49 31 L54 32 Q57 33 57 36 V42 H8 Z\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M21 31 H50\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M34 23 V31\"/><circle cx=\"19\" cy=\"43\" r=\"5.5\" fill=\"#fff\"/><circle cx=\"46\" cy=\"43\" r=\"5.5\" fill=\"#fff\"/></g><polygon fill=\"#fff\" points=\"50.0,5.0 52.0,11.1 57.8,8.2 54.9,14.0 61.0,16.0 54.9,18.0 57.8,23.8 52.0,20.9 50.0,27.0 48.0,20.9 42.2,23.8 45.1,18.0 39.0,16.0 45.1,14.0 42.2,8.2 48.0,11.1\"/></g></svg>",
+"despiste": "<svg viewBox=\"0 0 64 64\" aria-hidden=\"true\"><defs><linearGradient id=\"ocg_rod\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#F2994A\"/><stop offset=\"1\" stop-color=\"#C4570F\"/></linearGradient></defs><rect x=\"1\" y=\"1\" width=\"62\" height=\"62\" rx=\"14\" fill=\"url(#ocg_rod)\"/><rect x=\"1.5\" y=\"1.5\" width=\"61\" height=\"61\" rx=\"13.5\" fill=\"none\" stroke=\"#fff\" stroke-opacity=\".25\"/><g transform=\"translate(6,6) scale(0.8125)\"><g transform=\"rotate(-14 32 36)\"><g transform=\"translate(2,4) scale(0.92)\"><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M8 42 V36 Q8 33 11 32 L17 31 L23 24 Q25 22 28 22 H39 Q42 22 44 24 L49 31 L54 32 Q57 33 57 36 V42 H8 Z\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M21 31 H50\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M34 23 V31\"/><circle cx=\"19\" cy=\"43\" r=\"5.5\" fill=\"#fff\"/><circle cx=\"46\" cy=\"43\" r=\"5.5\" fill=\"#fff\"/></g></g><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M4 58 C14 54 10 48 20 46\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M4 50 C10 47 8 43 14 41\"/></g></svg>",
+"atropelamento_rodoviario": "<svg viewBox=\"0 0 64 64\" aria-hidden=\"true\"><defs><linearGradient id=\"ocg_rod\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#F2994A\"/><stop offset=\"1\" stop-color=\"#C4570F\"/></linearGradient></defs><rect x=\"1\" y=\"1\" width=\"62\" height=\"62\" rx=\"14\" fill=\"url(#ocg_rod)\"/><rect x=\"1.5\" y=\"1.5\" width=\"61\" height=\"61\" rx=\"13.5\" fill=\"none\" stroke=\"#fff\" stroke-opacity=\".25\"/><g transform=\"translate(6,6) scale(0.8125)\"><circle cx=\"16\" cy=\"10\" r=\"5\" fill=\"#fff\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M16 17 V34 M16 22 L8 30 M16 22 L24 28 M16 34 L9 48 M16 34 L23 46\"/><g transform=\"translate(22,12) scale(0.7)\"><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M8 42 V36 Q8 33 11 32 L17 31 L23 24 Q25 22 28 22 H39 Q42 22 44 24 L49 31 L54 32 Q57 33 57 36 V42 H8 Z\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M21 31 H50\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M34 23 V31\"/><circle cx=\"19\" cy=\"43\" r=\"5.5\" fill=\"#fff\"/><circle cx=\"46\" cy=\"43\" r=\"5.5\" fill=\"#fff\"/></g></g></svg>",
+"limpeza_de_via_e_sinalizacao_de_perigo": "<svg viewBox=\"0 0 64 64\" aria-hidden=\"true\"><defs><linearGradient id=\"ocg_rod\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#F2994A\"/><stop offset=\"1\" stop-color=\"#C4570F\"/></linearGradient></defs><rect x=\"1\" y=\"1\" width=\"62\" height=\"62\" rx=\"14\" fill=\"url(#ocg_rod)\"/><rect x=\"1.5\" y=\"1.5\" width=\"61\" height=\"61\" rx=\"13.5\" fill=\"none\" stroke=\"#fff\" stroke-opacity=\".25\"/><g transform=\"translate(6,6) scale(0.8125)\"><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M32 6 L59 52 H5 Z\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" stroke-width=\"5\" d=\"M32 22 V36\"/><circle cx=\"32\" cy=\"44\" r=\"3.2\" fill=\"#fff\"/></g></svg>",
+"mato": "<svg viewBox=\"0 0 64 64\" aria-hidden=\"true\"><defs><linearGradient id=\"ocg_inc\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#E5484D\"/><stop offset=\"1\" stop-color=\"#9B1C1F\"/></linearGradient></defs><rect x=\"1\" y=\"1\" width=\"62\" height=\"62\" rx=\"14\" fill=\"url(#ocg_inc)\"/><rect x=\"1.5\" y=\"1.5\" width=\"61\" height=\"61\" rx=\"13.5\" fill=\"none\" stroke=\"#fff\" stroke-opacity=\".25\"/><g transform=\"translate(6,6) scale(0.8125)\"><g transform=\"translate(16,2) scale(1.0)\"><path fill=\"#fff\" d=\"M16 0 C19 7 26 11 26 20 C26 27 21 32 16 32 C11 32 6 27 6 20 C6 15 9 12 11 8 C12 13 14 15 16 15 C15 10 14 5 16 0 Z\"/></g><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M4 58 H60\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M10 58 L7 46 M14 58 V44 M18 58 L21 47 M46 58 L43 46 M50 58 V43 M54 58 L57 47\"/></g></svg>",
+"agricola": "<svg viewBox=\"0 0 64 64\" aria-hidden=\"true\"><defs><linearGradient id=\"ocg_inc\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#E5484D\"/><stop offset=\"1\" stop-color=\"#9B1C1F\"/></linearGradient></defs><rect x=\"1\" y=\"1\" width=\"62\" height=\"62\" rx=\"14\" fill=\"url(#ocg_inc)\"/><rect x=\"1.5\" y=\"1.5\" width=\"61\" height=\"61\" rx=\"13.5\" fill=\"none\" stroke=\"#fff\" stroke-opacity=\".25\"/><g transform=\"translate(6,6) scale(0.8125)\"><g transform=\"translate(26,2) scale(0.95)\"><path fill=\"#fff\" d=\"M16 0 C19 7 26 11 26 20 C26 27 21 32 16 32 C11 32 6 27 6 20 C6 15 9 12 11 8 C12 13 14 15 16 15 C15 10 14 5 16 0 Z\"/></g><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M14 60 V22\"/><path fill=\"#fff\" d=\"M14 22 C9 20 8 15 10 11 C13 13 14 17 14 22 Z M14 22 C19 20 20 15 18 11 C15 13 14 17 14 22 Z M14 32 C9 30 7 26 8 21 C12 23 14 27 14 32 Z M14 32 C19 30 21 26 20 21 C16 23 14 27 14 32 Z M14 42 C9 40 7 36 8 31 C12 33 14 37 14 42 Z M14 42 C19 40 21 36 20 31 C16 33 14 37 14 42 Z\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M4 60 H60\"/></g></svg>",
+"rodoviario_incendio_em_veiculo": "<svg viewBox=\"0 0 64 64\" aria-hidden=\"true\"><defs><linearGradient id=\"ocg_inc\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#E5484D\"/><stop offset=\"1\" stop-color=\"#9B1C1F\"/></linearGradient></defs><rect x=\"1\" y=\"1\" width=\"62\" height=\"62\" rx=\"14\" fill=\"url(#ocg_inc)\"/><rect x=\"1.5\" y=\"1.5\" width=\"61\" height=\"61\" rx=\"13.5\" fill=\"none\" stroke=\"#fff\" stroke-opacity=\".25\"/><g transform=\"translate(6,6) scale(0.8125)\"><g transform=\"translate(-1,12) scale(1.0)\"><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M8 42 V36 Q8 33 11 32 L17 31 L23 24 Q25 22 28 22 H39 Q42 22 44 24 L49 31 L54 32 Q57 33 57 36 V42 H8 Z\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M21 31 H50\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M34 23 V31\"/><circle cx=\"19\" cy=\"43\" r=\"5.5\" fill=\"#fff\"/><circle cx=\"46\" cy=\"43\" r=\"5.5\" fill=\"#fff\"/></g><g transform=\"translate(19,0) scale(0.8)\"><path fill=\"#fff\" d=\"M16 0 C19 7 26 11 26 20 C26 27 21 32 16 32 C11 32 6 27 6 20 C6 15 9 12 11 8 C12 13 14 15 16 15 C15 10 14 5 16 0 Z\"/></g></g></svg>",
+"habitacional": "<svg viewBox=\"0 0 64 64\" aria-hidden=\"true\"><defs><linearGradient id=\"ocg_inc\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#E5484D\"/><stop offset=\"1\" stop-color=\"#9B1C1F\"/></linearGradient></defs><rect x=\"1\" y=\"1\" width=\"62\" height=\"62\" rx=\"14\" fill=\"url(#ocg_inc)\"/><rect x=\"1.5\" y=\"1.5\" width=\"61\" height=\"61\" rx=\"13.5\" fill=\"none\" stroke=\"#fff\" stroke-opacity=\".25\"/><g transform=\"translate(6,6) scale(0.8125)\"><g transform=\"translate(0,4) scale(1)\"><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M10 30 L32 12 L54 30\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M16 26 V52 H48 V26\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M27 52 V40 H37 V52\"/></g><g transform=\"translate(22,30) scale(0.62)\"><path fill=\"#fff\" d=\"M16 0 C19 7 26 11 26 20 C26 27 21 32 16 32 C11 32 6 27 6 20 C6 15 9 12 11 8 C12 13 14 15 16 15 C15 10 14 5 16 0 Z\"/></g></g></svg>",
+"parque_escolar": "<svg viewBox=\"0 0 64 64\" aria-hidden=\"true\"><defs><linearGradient id=\"ocg_inc\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#E5484D\"/><stop offset=\"1\" stop-color=\"#9B1C1F\"/></linearGradient></defs><rect x=\"1\" y=\"1\" width=\"62\" height=\"62\" rx=\"14\" fill=\"url(#ocg_inc)\"/><rect x=\"1.5\" y=\"1.5\" width=\"61\" height=\"61\" rx=\"13.5\" fill=\"none\" stroke=\"#fff\" stroke-opacity=\".25\"/><g transform=\"translate(6,6) scale(0.8125)\"><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M6 58 V30 H58 V58\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M4 30 L32 16 L60 30\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M32 16 V4\"/><path fill=\"#fff\" d=\"M32 4 H44 L41 8 L44 12 H32 Z\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M2 58 H62\"/><g transform=\"translate(22,32) scale(0.66)\"><path fill=\"#fff\" d=\"M16 0 C19 7 26 11 26 20 C26 27 21 32 16 32 C11 32 6 27 6 20 C6 15 9 12 11 8 C12 13 14 15 16 15 C15 10 14 5 16 0 Z\"/></g></g></svg>",
+"equipamentos": "<svg viewBox=\"0 0 64 64\" aria-hidden=\"true\"><defs><linearGradient id=\"ocg_inc\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#E5484D\"/><stop offset=\"1\" stop-color=\"#9B1C1F\"/></linearGradient></defs><rect x=\"1\" y=\"1\" width=\"62\" height=\"62\" rx=\"14\" fill=\"url(#ocg_inc)\"/><rect x=\"1.5\" y=\"1.5\" width=\"61\" height=\"61\" rx=\"13.5\" fill=\"none\" stroke=\"#fff\" stroke-opacity=\".25\"/><g transform=\"translate(6,6) scale(0.8125)\"><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M6 58 V30 L20 22 V30 L34 22 V30 L48 22 V12 H56 V58 Z\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M2 58 H62\"/><g transform=\"translate(17,30) scale(0.72)\"><path fill=\"#fff\" d=\"M16 0 C19 7 26 11 26 20 C26 27 21 32 16 32 C11 32 6 27 6 20 C6 15 9 12 11 8 C12 13 14 15 16 15 C15 10 14 5 16 0 Z\"/></g></g></svg>",
+"busca_e_resgate_terrestre_de_animais": "<svg viewBox=\"0 0 64 64\" aria-hidden=\"true\"><defs><linearGradient id=\"ocg_res\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#3E8EDE\"/><stop offset=\"1\" stop-color=\"#164F99\"/></linearGradient></defs><rect x=\"1\" y=\"1\" width=\"62\" height=\"62\" rx=\"14\" fill=\"url(#ocg_res)\"/><rect x=\"1.5\" y=\"1.5\" width=\"61\" height=\"61\" rx=\"13.5\" fill=\"none\" stroke=\"#fff\" stroke-opacity=\".25\"/><g transform=\"translate(6,6) scale(0.8125)\"><ellipse cx=\"32\" cy=\"44\" rx=\"13\" ry=\"11\" fill=\"#fff\"/><ellipse cx=\"14\" cy=\"28\" rx=\"5.5\" ry=\"7\" transform=\"rotate(-20 14 28)\" fill=\"#fff\"/><ellipse cx=\"25\" cy=\"17\" rx=\"5.5\" ry=\"7.5\" transform=\"rotate(-8 25 17)\" fill=\"#fff\"/><ellipse cx=\"39\" cy=\"17\" rx=\"5.5\" ry=\"7.5\" transform=\"rotate(8 39 17)\" fill=\"#fff\"/><ellipse cx=\"50\" cy=\"28\" rx=\"5.5\" ry=\"7\" transform=\"rotate(20 50 28)\" fill=\"#fff\"/></g></svg>",
+"fuga_de_gas_em_conduta": "<svg viewBox=\"0 0 64 64\" aria-hidden=\"true\"><defs><linearGradient id=\"ocg_tec\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#9B5DE5\"/><stop offset=\"1\" stop-color=\"#5A2A99\"/></linearGradient></defs><rect x=\"1\" y=\"1\" width=\"62\" height=\"62\" rx=\"14\" fill=\"url(#ocg_tec)\"/><rect x=\"1.5\" y=\"1.5\" width=\"61\" height=\"61\" rx=\"13.5\" fill=\"none\" stroke=\"#fff\" stroke-opacity=\".25\"/><g transform=\"translate(6,6) scale(0.8125)\"><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M2 46 H62 M2 58 H62\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M26 46 V36 H38 V46\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M22 36 H42\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M24 28 C20 24 28 20 24 14 M32 28 C28 24 36 20 32 12 M40 28 C36 24 44 20 40 14\"/></g></svg>",
+"quimicos_dentro_de_uma_instalacao": "<svg viewBox=\"0 0 64 64\" aria-hidden=\"true\"><defs><linearGradient id=\"ocg_tec\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#9B5DE5\"/><stop offset=\"1\" stop-color=\"#5A2A99\"/></linearGradient></defs><rect x=\"1\" y=\"1\" width=\"62\" height=\"62\" rx=\"14\" fill=\"url(#ocg_tec)\"/><rect x=\"1.5\" y=\"1.5\" width=\"61\" height=\"61\" rx=\"13.5\" fill=\"none\" stroke=\"#fff\" stroke-opacity=\".25\"/><g transform=\"translate(6,6) scale(0.8125)\"><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M24 6 H40 M27 6 V24 L10 54 Q8 58 13 58 H51 Q56 58 54 54 L37 24 V6\"/><path fill=\"#fff\" d=\"M17 44 H47 L52 54 Q53 56 50 56 H14 Q11 56 12 54 Z\"/><circle cx=\"30\" cy=\"34\" r=\"2.6\" fill=\"#fff\"/><circle cx=\"36\" cy=\"28\" r=\"1.8\" fill=\"#fff\"/></g></svg>",
+"detritos_nao_confinados": "<svg viewBox=\"0 0 64 64\" aria-hidden=\"true\"><defs><linearGradient id=\"ocg_tec\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#9B5DE5\"/><stop offset=\"1\" stop-color=\"#5A2A99\"/></linearGradient></defs><rect x=\"1\" y=\"1\" width=\"62\" height=\"62\" rx=\"14\" fill=\"url(#ocg_tec)\"/><rect x=\"1.5\" y=\"1.5\" width=\"61\" height=\"61\" rx=\"13.5\" fill=\"none\" stroke=\"#fff\" stroke-opacity=\".25\"/><g transform=\"translate(6,6) scale(0.8125)\"><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M2 56 H62\"/><path fill=\"#fff\" d=\"M6 56 L10 46 L18 44 L22 56 Z M26 56 L30 40 L40 38 L44 48 L42 56 Z M48 56 L50 48 L57 47 L59 56 Z\"/><path fill=\"#fff\" d=\"M14 34 L19 31 L21 36 L16 38 Z M44 30 L50 28 L51 34 L46 35 Z M30 26 L34 24 L35 29 L31 30 Z\"/></g></svg>",
+"detritos_confinados": "<svg viewBox=\"0 0 64 64\" aria-hidden=\"true\"><defs><linearGradient id=\"ocg_tec\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#9B5DE5\"/><stop offset=\"1\" stop-color=\"#5A2A99\"/></linearGradient></defs><rect x=\"1\" y=\"1\" width=\"62\" height=\"62\" rx=\"14\" fill=\"url(#ocg_tec)\"/><rect x=\"1.5\" y=\"1.5\" width=\"61\" height=\"61\" rx=\"13.5\" fill=\"none\" stroke=\"#fff\" stroke-opacity=\".25\"/><g transform=\"translate(6,6) scale(0.8125)\"><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M10 22 H54 L49 58 H15 Z\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M6 22 H58\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M25 14 H39 V22\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M25 14 V22\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M24 32 V48 M32 32 V48 M40 32 V48\"/></g></svg>",
+"desabamento_de_estruturas_edificadas": "<svg viewBox=\"0 0 64 64\" aria-hidden=\"true\"><defs><linearGradient id=\"ocg_est\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#A1887F\"/><stop offset=\"1\" stop-color=\"#5D4037\"/></linearGradient></defs><rect x=\"1\" y=\"1\" width=\"62\" height=\"62\" rx=\"14\" fill=\"url(#ocg_est)\"/><rect x=\"1.5\" y=\"1.5\" width=\"61\" height=\"61\" rx=\"13.5\" fill=\"none\" stroke=\"#fff\" stroke-opacity=\".25\"/><g transform=\"translate(6,6) scale(0.8125)\"><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M10 58 V20 L30 10 V58\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M30 24 L44 20 L42 30\"/><path fill=\"#fff\" d=\"M34 58 L38 44 L46 42 L50 50 L58 48 L60 58 Z\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M2 58 H62\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M18 26 L22 34 L17 40 L21 48\"/></g></svg>",
+"edificios_degradados_ou_devolutos": "<svg viewBox=\"0 0 64 64\" aria-hidden=\"true\"><defs><linearGradient id=\"ocg_est\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#A1887F\"/><stop offset=\"1\" stop-color=\"#5D4037\"/></linearGradient></defs><rect x=\"1\" y=\"1\" width=\"62\" height=\"62\" rx=\"14\" fill=\"url(#ocg_est)\"/><rect x=\"1.5\" y=\"1.5\" width=\"61\" height=\"61\" rx=\"13.5\" fill=\"none\" stroke=\"#fff\" stroke-opacity=\".25\"/><g transform=\"translate(6,6) scale(0.8125)\"><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M12 58 V12 H52 V58\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M4 58 H60\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M20 20 H28 V28 H20 Z M36 20 H44 V28 H36 Z M20 36 H28 V44 H20 Z\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M36 36 L44 44 M44 36 L36 44\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M28 58 V50 H36 V58\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M48 8 L44 18 L50 24\"/></g></svg>",
+"inundacao_de_estruturas_por_agua_canalizada": "<svg viewBox=\"0 0 64 64\" aria-hidden=\"true\"><defs><linearGradient id=\"ocg_nat\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#26A69A\"/><stop offset=\"1\" stop-color=\"#0B5F57\"/></linearGradient></defs><rect x=\"1\" y=\"1\" width=\"62\" height=\"62\" rx=\"14\" fill=\"url(#ocg_nat)\"/><rect x=\"1.5\" y=\"1.5\" width=\"61\" height=\"61\" rx=\"13.5\" fill=\"none\" stroke=\"#fff\" stroke-opacity=\".25\"/><g transform=\"translate(6,6) scale(0.8125)\"><g transform=\"translate(0,-2) scale(0.9)\"><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M10 30 L32 12 L54 30\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M16 26 V52 H48 V26\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M27 52 V40 H37 V52\"/></g><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M2 48 Q8 43 14 48 T26 48 T38 48 T50 48 T62 48\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M2 58 Q8 53 14 58 T26 58 T38 58 T50 58 T62 58\"/></g></svg>",
+"queda_de_arvore": "<svg viewBox=\"0 0 64 64\" aria-hidden=\"true\"><defs><linearGradient id=\"ocg_nat\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#26A69A\"/><stop offset=\"1\" stop-color=\"#0B5F57\"/></linearGradient></defs><rect x=\"1\" y=\"1\" width=\"62\" height=\"62\" rx=\"14\" fill=\"url(#ocg_nat)\"/><rect x=\"1.5\" y=\"1.5\" width=\"61\" height=\"61\" rx=\"13.5\" fill=\"none\" stroke=\"#fff\" stroke-opacity=\".25\"/><g transform=\"translate(6,6) scale(0.8125)\"><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M2 58 H62\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" stroke-width=\"6\" d=\"M10 54 L42 34\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" d=\"M24 46 L22 38 M33 40 L35 32\"/><circle cx=\"48\" cy=\"28\" r=\"10\" fill=\"#fff\"/><circle cx=\"40\" cy=\"22\" r=\"8\" fill=\"#fff\"/><circle cx=\"55\" cy=\"38\" r=\"7\" fill=\"#fff\"/><circle cx=\"52\" cy=\"18\" r=\"6\" fill=\"#fff\"/><path fill=\"#fff\" d=\"M4 58 L8 50 L14 52 L16 58 Z\"/></g></svg>",
+"outro": "<svg viewBox=\"0 0 64 64\" aria-hidden=\"true\"><defs><linearGradient id=\"ocg_outro\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#7B8794\"/><stop offset=\"1\" stop-color=\"#3E4C59\"/></linearGradient></defs><rect x=\"1\" y=\"1\" width=\"62\" height=\"62\" rx=\"14\" fill=\"url(#ocg_outro)\"/><rect x=\"1.5\" y=\"1.5\" width=\"61\" height=\"61\" rx=\"13.5\" fill=\"none\" stroke=\"#fff\" stroke-opacity=\".25\"/><g transform=\"translate(6,6) scale(0.8125)\"><circle cx=\"32\" cy=\"32\" r=\"24\" stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\"/><path stroke=\"#fff\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\" stroke-width=\"5\" d=\"M32 18 V36\"/><circle cx=\"32\" cy=\"45\" r=\"3.4\" fill=\"#fff\"/></g></svg>"
+};
+// Ordem importa: as regras mais específicas primeiro
+const REGRAS_NATUREZA = [
+  [/colisao/, 'colisao_rodoviaria'],
+  [/despiste/, 'despiste'],
+  [/atropelamento/, 'atropelamento_rodoviario'],
+  [/limpeza de via|sinalizacao de perigo/, 'limpeza_de_via_e_sinalizacao_de_perigo'],
+  [/nao confinad/, 'detritos_nao_confinados'],
+  [/confinad/, 'detritos_confinados'],
+  [/animais/, 'busca_e_resgate_terrestre_de_animais'],
+  [/fuga de gas|\bgas\b/, 'fuga_de_gas_em_conduta'],
+  [/quimic/, 'quimicos_dentro_de_uma_instalacao'],
+  [/inundacao|agua canalizada/, 'inundacao_de_estruturas_por_agua_canalizada'],
+  [/arvore/, 'queda_de_arvore'],
+  [/desabamento|derrocada/, 'desabamento_de_estruturas_edificadas'],
+  [/degradad|devolut/, 'edificios_degradados_ou_devolutos'],
+  [/mato|florest|povoamento/, 'mato'],
+  [/agricola/, 'agricola'],
+  [/habitacional/, 'habitacional'],
+  [/escolar/, 'parque_escolar'],
+  [/equipamento|industri|comerci|servicos/, 'equipamentos'],
+  [/rodoviari|veiculo/, 'rodoviario_incendio_em_veiculo']
+];
+function iconeNatureza(o){
+  const n = String(o.natureza || '').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+  const r = REGRAS_NATUREZA.find(([re]) => re.test(n));
+  return ICONES_NATUREZA[r ? r[1] : 'outro'];
+}
+
 /* ---------- Relógio ---------- */
 function relogio(){
   const now = new Date(), p2 = n => String(n).padStart(2,'0');
@@ -830,23 +952,26 @@ const aPiscar = new Set();
 let vistos = {};
 try { vistos = JSON.parse(localStorage.getItem('oc_vistos') || '{}'); } catch(e){}
 
-const btnAlertas = $('btnAlertas');
-btnAlertas.classList.add('convite');
-btnAlertas.addEventListener('click', () => {
-  if (!alertasAtivos){
-    try{
-      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-      audioCtx.resume();
-      alertasAtivos = true;
-      tocar(1);
-    }catch(e){ alertasAtivos = false; }
-  } else {
-    alertasAtivos = false;
+/* Alertas sempre ativos. O navegador só deixa tocar som depois do primeiro toque/clique na página:
+   o primeiro toque em qualquer sítio liga o som, as notificações e o ecrã sempre ligado. */
+alertasAtivos = true;
+try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){ audioCtx = null; }
+function mostrarSom(){
+  const b = $('som-btn'), ok = audioCtx && audioCtx.state === 'running';
+  b.className = 'sync-item wake-btn ' + (ok ? 'ok' : 'warn');
+  b.querySelector('.val').textContent = ok ? 'ativo' : 'tocar p/ ativar';
+}
+function desbloquear(){
+  if (audioCtx && audioCtx.state !== 'running') audioCtx.resume().then(mostrarSom).catch(() => {});
+  if (CONFIG.NOTIFICACOES && 'Notification' in window && Notification.permission === 'default'){
+    try { Notification.requestPermission(); } catch(e){}
   }
-  btnAlertas.textContent = alertasAtivos ? '🔔 Alertas ativos' : '🔕 Ativar alertas';
-  btnAlertas.setAttribute('aria-pressed', alertasAtivos);
-  btnAlertas.classList.toggle('convite', !alertasAtivos);
-});
+  if (!wakeLock) pedirEcraLigado();
+}
+['pointerdown','keydown','touchstart'].forEach(ev => window.addEventListener(ev, desbloquear, {passive:true}));
+if (audioCtx) audioCtx.onstatechange = mostrarSom;
+$('som-btn').addEventListener('click', () => { desbloquear(); setTimeout(() => tocar(1), 150); });
+mostrarSom();
 
 function tocar(repeticoes){
   if (!alertasAtivos || !audioCtx) return;
@@ -886,6 +1011,7 @@ function verificarNovas(){
 
 function alertar(novas){
   tocar(3);
+  avisoVisual(novas, 'nova');
   novas.forEach(o => aPiscar.add(o.id));
   setTimeout(() => { novas.forEach(o => aPiscar.delete(o.id)); desenhar(); }, CONFIG.PISCAR_SEG * 1000);
   piscarTitulo('🔴 NOVA: ' + (novas[0].natureza || 'ocorrência') + (novas.length > 1 ? ' (+' + (novas.length-1) + ')' : ''));
@@ -908,13 +1034,21 @@ function piscarTitulo(texto){
 const eNova = o => vistos[o.id] && (Date.now() - vistos[o.id]) < CONFIG.ALERTA_NOVA_MIN * 60000;
 
 /* ---------- Alerta de agravamento ---------- */
-let estadoAnt = {}, agravadas = {}, primeiraAgrav = true;
-try { estadoAnt = JSON.parse(localStorage.getItem('oc_estado') || '{}'); agravadas = JSON.parse(localStorage.getItem('oc_agravou') || '{}'); } catch(e){}
+let estadoAnt = {}, agravadas = {}, primeiraAgrav = true, mudancasMeios = {};
+try { estadoAnt = JSON.parse(localStorage.getItem('oc_estado') || '{}'); agravadas = JSON.parse(localStorage.getItem('oc_agravou') || '{}'); mudancasMeios = JSON.parse(localStorage.getItem('oc_meios') || '{}'); } catch(e){}
 function verificarAgravamentos(){
   const agora = Date.now(), lista = [];
   ocorrencias.forEach(o => {
     const ant = estadoAnt[o.id];
     if (ant && !primeiraAgrav){
+      // Alteração do número de meios (sobe ou desce): fica assinalada no próprio campo do cartão
+      const cur = {op:o.operacionais||0, te:o.terrestres||0, ae:o.aereos||0};
+      const antM = {op:ant.op||0, te:ant.te!=null?ant.te:cur.te, ae:ant.ae||0};
+      if (cur.op!==antM.op || cur.te!==antM.te || cur.ae!==antM.ae){
+        const prev = mudancasMeios[o.id] && (agora - mudancasMeios[o.id].t) < CONFIG.MEIOS_MUDOU_MIN*60000 ? mudancasMeios[o.id] : {op:0,te:0,ae:0};
+        const m = {op:prev.op+cur.op-antM.op, te:prev.te+cur.te-antM.te, ae:prev.ae+cur.ae-antM.ae, t:agora};
+        if (m.op||m.te||m.ae) mudancasMeios[o.id] = m; else delete mudancasMeios[o.id];
+      }
       const mais = (o.operacionais||0) - (ant.op||0);
       const motivos = [];
       if (mais >= CONFIG.AGRAVOU_OPERACIONAIS) motivos.push(`+${mais} operacionais`);
@@ -922,11 +1056,12 @@ function verificarAgravamentos(){
       if (o.importante && !ant.imp) motivos.push('marcada como importante');
       if (motivos.length){ agravadas[o.id] = {t:agora, m:motivos.join(', ')}; lista.push(o); }
     }
-    estadoAnt[o.id] = {op:o.operacionais||0, ae:o.aereos||0, imp:!!o.importante, t:agora};
+    estadoAnt[o.id] = {op:o.operacionais||0, te:o.terrestres||0, ae:o.aereos||0, imp:!!o.importante, t:agora};
   });
   Object.keys(estadoAnt).forEach(k => { if (agora - estadoAnt[k].t > 3*864e5) delete estadoAnt[k]; });
   Object.keys(agravadas).forEach(k => { if (agora - agravadas[k].t > 864e5) delete agravadas[k]; });
-  try { localStorage.setItem('oc_estado', JSON.stringify(estadoAnt)); localStorage.setItem('oc_agravou', JSON.stringify(agravadas)); } catch(e){}
+  Object.keys(mudancasMeios).forEach(k => { if (agora - mudancasMeios[k].t > CONFIG.MEIOS_MUDOU_MIN*60000) delete mudancasMeios[k]; });
+  try { localStorage.setItem('oc_estado', JSON.stringify(estadoAnt)); localStorage.setItem('oc_agravou', JSON.stringify(agravadas)); localStorage.setItem('oc_meios', JSON.stringify(mudancasMeios)); } catch(e){}
   primeiraAgrav = false;
   if (lista.length) alertarAgravamento(lista);
 }
@@ -947,6 +1082,45 @@ function alertarAgravamento(lista){
   setTimeout(() => { lista.forEach(o => aPiscar.delete(o.id)); desenhar(); }, CONFIG.PISCAR_SEG * 1000);
   piscarTitulo('🟠 AGRAVOU: ' + (lista[0].natureza || 'ocorrência') + (lista.length > 1 ? ' (+' + (lista.length-1) + ')' : ''));
 }
+
+/* ---------- Alerta visual (não depende do som) ---------- */
+let avisoTimer = null;
+function avisoVisual(lista, tipo){
+  const el = $('avisoEcra');
+  const titulo = tipo === 'nova'
+    ? (lista.length > 1 ? `${lista.length} NOVAS OCORRÊNCIAS` : 'NOVA OCORRÊNCIA')
+    : (lista.length > 1 ? `${lista.length} OCORRÊNCIAS AGRAVARAM` : 'OCORRÊNCIA AGRAVOU');
+  const linhas = lista.slice(0, 4).map(o => {
+    const local = [o._freg || o.freguesia, o.localidade].filter(Boolean).join(' — ');
+    const d = distancias(o);
+    const dist = d ? d.map((x,i) => `${quarteis[i].sigla} ${fmtKm(x.km)} km`).join(' · ') : '';
+    const motivo = tipo === 'agravou' && agravadas[o.id] ? agravadas[o.id].m : '';
+    return `<div class="av-oc"><span class="av-ico">${iconeNatureza(o)}</span><span class="av-txt">
+      <b>${esc(o.natureza || 'Ocorrência')}</b><span>${esc(local || 'Local não indicado')}</span>
+      <small>${esc([motivo, o.inicio ? 'Início ' + hhmm(new Date(o.inicio)) : '', dist].filter(Boolean).join(' · '))}</small></span></div>`;
+  }).join('') + (lista.length > 4 ? `<div class="av-mais">+ ${lista.length - 4} na lista</div>` : '');
+  el.className = 'aviso-ecra av-' + tipo;
+  el.innerHTML = `<div class="av-caixa${lista.length > 1 ? ' varias' : ''}"><div class="av-titulo">${tipo === 'nova' ? '🔴' : '🟠'} ${titulo}</div>${linhas}
+    <div class="av-fechar">Tocar para fechar</div></div>`;
+  el.hidden = false;
+  clearTimeout(avisoTimer);
+  if (CONFIG.AVISO_ECRA_SEG > 0) avisoTimer = setTimeout(() => { el.hidden = true; }, CONFIG.AVISO_ECRA_SEG * 1000);
+
+  // Notificação do sistema (aparece mesmo com a janela minimizada ou noutro separador)
+  if (CONFIG.NOTIFICACOES && 'Notification' in window && Notification.permission === 'granted'){
+    lista.slice(0, 3).forEach(o => {
+      try {
+        const n = new Notification((tipo === 'nova' ? '🔴 Nova: ' : '🟠 Agravou: ') + (o.natureza || 'Ocorrência'), {
+          body: [o._freg || o.freguesia, o.localidade].filter(Boolean).join(' — '),
+          tag: 'oc-' + o.id + '-' + tipo, requireInteraction: true });
+        n.onclick = () => { window.focus(); selecionar(o.id, true); n.close(); };
+      } catch(e){}
+    });
+  }
+  if (CONFIG.VIBRAR && navigator.vibrate) { try { navigator.vibrate(tipo === 'nova' ? [400,150,400,150,400] : [800,200,800]); } catch(e){} }
+}
+$('avisoEcra').addEventListener('click', () => { $('avisoEcra').hidden = true; clearTimeout(avisoTimer); });
+
 const eAgravada = o => agravadas[o.id] && (Date.now() - agravadas[o.id].t) < CONFIG.ALERTA_NOVA_MIN * 60000;
 
 /* ---------- Avisos meteorológicos IPMA ---------- */
@@ -1013,6 +1187,15 @@ btnVizinhos.addEventListener('click', () => {
 const camadaLinhas = L.layerGroup().addTo(mapa);
 const ordenar = (a,b) => a.e.ordem - b.e.ordem || String(b.o.inicio).localeCompare(String(a.o.inicio));
 
+/* Campo de meios com aviso discreto quando o número mudou (+ sobe / − desce) */
+function campoMeio(o, k, titulo, icone, valor){
+  const m = mudancasMeios[o.id];
+  const d = m && (Date.now() - m.t) < CONFIG.MEIOS_MUDOU_MIN*60000 ? m[k] : 0;
+  if (!d) return `<span class="meio" title="${titulo}">${icone}${valor}</span>`;
+  const quando = hhmm(new Date(m.t));
+  return `<span class="meio mudou ${d>0?'sobe':'desce'}" title="${titulo}: ${d>0?'+':'−'}${Math.abs(d)} às ${quando}">${icone}${valor}<sup>${d>0?'+':'−'}${Math.abs(d)}</sup></span>`;
+}
+
 function itemHtml({o,e}, viz){
   const local = viz
     ? [(CONFIG.VIZINHOS||{})[o.dico] || o.concelho, o.freguesia, o.localidade]
@@ -1020,6 +1203,7 @@ function itemHtml({o,e}, viz){
   return `
       <button class="oc${viz?' viz':''}${selecionada===o.id?' sel':''}${aPiscar.has(o.id)?' alerta':''}${aPiscar.has(o.id)&&eAgravada(o)&&!eNova(o)?' laranja':''}" style="--c:${e.hex}" data-id="${esc(o.id)}">
         <span class="faixa"></span>
+        <span class="oc-ico" title="${esc(o.natureza || 'Ocorrência')}">${iconeNatureza(o)}</span>
         <span class="conteudo">
           <span class="topo">
             <span class="natureza">${eNova(o)?'<span class="nova">NOVA</span>':(eAgravada(o)?`<span class="nova agravou" title="${esc(agravadas[o.id].m)}">AGRAVOU</span>`:'')}${esc(o.natureza || 'Ocorrência')}</span>
@@ -1027,9 +1211,9 @@ function itemHtml({o,e}, viz){
           </span>
           <span class="local" style="display:block">${esc(local.filter(Boolean).join(' — ') || 'Local não indicado')}</span>
           <span class="rodape">
-            <span class="meio" title="Operacionais">${ICONES.op}${o.operacionais}</span>
-            <span class="meio" title="Meios terrestres">${ICONES.ter}${o.terrestres}</span>
-            <span class="meio" title="Meios aéreos">${ICONES.aer}${o.aereos}</span>
+            ${campoMeio(o,'op','Operacionais',ICONES.op,o.operacionais)}
+            ${campoMeio(o,'te','Meios terrestres',ICONES.ter,o.terrestres)}
+            ${campoMeio(o,'ae','Meios aéreos',ICONES.aer,o.aereos)}
             <span class="inicio">${esc(haQuanto(o.inicio))}</span>
           </span>
           ${htmlDist(o)}
