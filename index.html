@@ -541,19 +541,18 @@
     overflow: hidden;
   }
   .paged-2 > .empty-state { grid-row: 1 / -1; }
-  /* Painel com 3 informações por página (Plano de Comunicações): cada caixa é medida num terço
-     da altura e depois encolhe para o seu conteúdo (classe .fitted-body), ficando as 3 seguidas no topo. */
+  /* Plano de Comunicações: caixas em DUAS COLUNAS; cada caixa tem a altura do seu conteúdo
+     (teatro de operações + canais), alinhadas no topo, sem espaço vazio dentro delas. */
   .paged-3 {
     display: grid;
-    grid-template-rows: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: auto;
+    align-content: start;
+    align-items: start;
     gap: 10px;
     overflow: hidden;
   }
-  .paged-3 > .empty-state { grid-row: 1 / -1; }
-  .paged-3.fitted-body { grid-template-rows: none; grid-auto-rows: auto; align-content: start; }
-  /* Caixa do evento ajustada ao conteúdo (evento + ecrãs), no topo do quadro, sem espaço vazio */
-  .c2-theatre-card.fitted { align-self: start; }
-  .c2-theatre-card.fitted .channels-grid { flex: 0 0 auto; }
+  .paged-3 > .empty-state { grid-column: 1 / -1; }
 
   /* AGENDAMENTO = violeta profundo | INFORMAÇÃO = esmeralda profundo.
      As cores da caixa vivem em variáveis para serem fáceis de ajustar. */
@@ -803,7 +802,8 @@
     overflow: hidden;
     box-shadow: 0 3px 14px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
-  .c2-theatre-card:nth-child(even) {
+  .c2-theatre-card:nth-child(4n+2),
+  .c2-theatre-card:nth-child(4n+3) {
     /* Segundo tom, igualmente neutro (stone/zinc), só para alternar a leitura entre
        cartões consecutivos — continua fora da paleta dos canais. */
     --box-a: rgba(68, 64, 60, 0.34);
@@ -834,9 +834,10 @@
     padding-right: 0.85em;
     border-right: 1px solid rgba(6, 17, 31, 0.28);
     font-family: var(--font-mono);
-    font-size: 0.75em;
+    font-size: 0.68em;
     font-weight: 800;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
     text-transform: uppercase;
     opacity: 0.8;
   }
@@ -845,16 +846,16 @@
   .theatre-name {
     flex: 1;
     min-width: 0;
-    font-size: 1.55em;
+    font-size: 1.05em;
     font-weight: 800;
-    line-height: 1.1;
-    letter-spacing: -0.01em;
+    line-height: 1.15;
+    letter-spacing: 0;
     color: #06111f;
     overflow-wrap: anywhere;
     text-align: center;
   }
-  .theatre-name.sm { font-size: 1.2em; }
-  .theatre-name.xs { font-size: 1em; }
+  .theatre-name.sm { font-size: 0.95em; }
+  .theatre-name.xs { font-size: 0.85em; }
   /* HORA: identificada (relógio + "HORA"), no canto superior direito, junto ao evento */
   .th-time {
     flex: 0 0 auto;
@@ -880,14 +881,12 @@
      vidro com reflexo, barra de estado na cor do canal e o canal em grande, luminoso.
      Ecrãs lado a lado numa só linha; a largura máxima de cada um vem de --maxw. */
   .channels-grid {
-    flex: 1;
-    min-height: 0;
+    flex: 0 0 auto;
     display: grid;
-    grid-template-columns: repeat(var(--cols, 1), minmax(0, var(--maxw, 14em)));
+    grid-template-columns: repeat(var(--cols, 1), minmax(0, 14em));
     justify-content: center;
-    grid-auto-rows: var(--rowh, minmax(0, 1fr));
-    align-content: center;                   /* ecrãs centrados na caixa, sem esticar */
-    gap: 0.7em;
+    grid-auto-rows: auto;                    /* altura dos ecrãs = conteúdo (nome + valor do canal) */
+    gap: 0.6em;
   }
   .radio {
     position: relative;
@@ -961,16 +960,18 @@
     background: var(--ch-accent, #38bdf8);
     color: #06111f;
     font-family: var(--font-mono);
-    font-size: var(--lab, 0.7em);          /* letra pequena e igual em todos os ecrãs (definida em layoutRadios) */
+    font-size: 1em;                        /* nome do canal (BSB, ROB, REPC…) bem visível */
     font-weight: 800;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     line-height: 1.1;
   }
   .rs-status svg { height: 0.85em; width: auto; flex-shrink: 0; fill: currentColor; }
   .rs-net { flex: 1; min-width: 0; overflow: hidden; text-align: center; white-space: nowrap; }
   /* Ecrãs estreitos: barra de estado mais compacta (aplicada por medição, ver fitRadioValues) */
-  .rs-status.compact { font-size: calc(var(--lab, 0.7em) * 0.85); letter-spacing: 0.03em; gap: 0.25em; padding: 0.2em 0.35em; }
+  .rs-status.compact svg { display: none; }
+  .rs-status.compact { justify-content: center; }
+  .rs-status.compact { font-size: 0.85em; letter-spacing: 0.03em; gap: 0.25em; padding: 0.2em 0.35em; }
   .rs-main {
     position: relative; z-index: 1;
     flex: 1;
@@ -980,7 +981,7 @@
     align-items: center;
     justify-content: center;
     text-align: center;
-    padding: 0.3em 0.4em;
+    padding: 0.35em 0.45em 0.4em;
   }
   .rs-val {
     font-family: var(--font-mono);
@@ -989,7 +990,7 @@
     color: #ffffff;
     text-shadow: 0 0 12px var(--ch-accent, transparent), 0 0 3px rgba(255, 255, 255, 0.55);
   }
-  .rs-val { font-size: 2.4em; }   /* valor inicial; o tamanho final é calculado por medição (fitRadioValues) */
+  .rs-val { font-size: 2em; white-space: nowrap; display: inline-block; }   /* valor do canal; reduz só se não couber na largura do ecrã (fitRadioValues) */
 
   /* CAIXA BAIXA (ecrãs pequenos): menos margens e evento mais compacto, para dar espaço aos canais */
   .c2-theatre-card.tight { padding: 0.35em; gap: 0.3em; }
@@ -1660,7 +1661,7 @@ const GID_CANAIS       = 752912776;   // folha "Canais Radio"
 const GID_VEICULOS     = 171672820;   // folha "Veículos"
 
 const PAGE_SIZE_AGENDAMENTOS = 2;
-const PAGE_SIZE_CANAIS       = 3;   // 3 informações (eventos) por página
+const PAGE_SIZE_CANAIS       = 4;   // 4 teatros de operações por página (2 colunas x 2 linhas)
 const PAGE_SIZE_VEICULOS     = 6;   // grelha 3 linhas x 2 colunas
 
 const ROTATE_MS   = 30000;   // rodar ecrãs a cada 30 segundos
@@ -2165,39 +2166,11 @@ const SVG_RADIO_BATT = '<svg viewBox="0 0 20 12" aria-hidden="true"><path fill-r
 // 1) Os ecrãs ajustam-se ao espaço livre da caixa; 2) o canal ocupa o maior tamanho que cabe no ecrã.
 // Tamanho dos ecrãs: usa todo o espaço livre da caixa (altura e largura). Todo o interior do rádio
 // (barra de estado, moldura, antena) é medido em "em", por isso escala com o tamanho de letra do rádio.
-const RADIO_MAX_H = 105;   // altura máxima (px) de cada ecrã de canal rádio
 function layoutRadios(root){
-  if(root.classList) root.classList.remove('fitted-body');   // mede com a grelha de 3 terços
-  // caixa baixa: evento mais compacto (feito antes de medir o espaço dos ecrãs)
-  root.querySelectorAll('.c2-theatre-card').forEach(card => {
-    card.classList.remove('fitted');            // mede primeiro com a altura total disponível
-    card.classList.toggle('tight', card.clientHeight < 150);
-  });
-  root.querySelectorAll('.channels-grid').forEach(grid => {
-    const radios = grid.querySelectorAll('.radio');
-    if(!radios.length) return;
-    const cs = getComputedStyle(grid);
-    const gapX = parseFloat(cs.columnGap) || 0, gapY = parseFloat(cs.rowGap) || 0;
-    const cols = parseInt(grid.style.getPropertyValue('--cols'), 10) || 1;
-    const rows = Math.ceil(radios.length / cols);
-    // altura de cada ecrã: a que cabe no espaço livre, mas limitada (os ecrãs não precisam de ser grandes)
-    const cellH = Math.min(RADIO_MAX_H, (grid.clientHeight - gapY * (rows - 1)) / rows);
-    grid.style.setProperty('--rowh', cellH + 'px');
-    const low = cellH < 88;                                   // pouco espaço em altura: ecrã compacto
-    grid.classList.toggle('low', low);
-    const maxW = cellH * (low ? 5 : 3);                       // proporção máxima de um ecrã largo
-    grid.style.setProperty('--maxw', maxW + 'px');
-    // nome do canal: letra pequena (deixa o espaço para o valor), proporcional à altura de cada ecrã
-    grid.style.setProperty('--lab', Math.max(8, Math.min(12, 6 + cellH * 0.04)) + 'px');
-    const cellW = Math.min(maxW, (grid.clientWidth - gapX * (cols - 1)) / cols);
-    const f = low
-      ? Math.max(8, Math.min(cellH / 3.6, cellW / 10, 16))
-      : Math.max(9, Math.min(cellH / 8, cellW / 13, 20));
-    radios.forEach(r => { r.style.fontSize = f + 'px'; });
-  });
-  // depois de calcular o tamanho dos ecrãs, a caixa encolhe para a altura do conteúdo
-  root.querySelectorAll('.c2-theatre-card').forEach(card => card.classList.add('fitted'));
-  if(root.classList && root.querySelector('.c2-theatre-card')) root.classList.add('fitted-body');
+  // As caixas e os ecrãs têm a altura do seu conteúdo (ver CSS .paged-3 / .channels-grid);
+  // aqui só se limpam medições antigas.
+  root.querySelectorAll('.c2-theatre-card').forEach(card => card.classList.remove('tight', 'fitted'));
+  root.querySelectorAll('.channels-grid').forEach(grid => grid.classList.remove('low'));
 }
 
 const RADIO_MAX_PX = 22;   // tamanho máximo da letra dos canais rádio
@@ -2208,22 +2181,20 @@ function fitRadioValues(root){
     st.classList.remove('compact');
     if(net.scrollWidth > net.clientWidth + 1) st.classList.add('compact');
   });
-  // canal: o maior tamanho de letra que cabe no ecrã (pesquisa binária)
+  // valor do canal: tamanho grande (2em); só reduz se não couber na largura do ecrã
   root.querySelectorAll('.rs-main').forEach(main => {
     const val = main.querySelector('.rs-val');
     if(!val) return;
-    val.style.overflowWrap = 'normal';
-    const fits = () => main.scrollWidth <= main.clientWidth + 1 && main.scrollHeight <= main.clientHeight + 1;
-    let lo = 8, hi = Math.max(lo, Math.min(main.clientHeight * 0.42, RADIO_MAX_PX));
-    val.style.fontSize = hi + 'px';
-    if(fits()) return;
-    for(let i = 0; i < 9; i++){
-      const mid = (lo + hi) / 2;
-      val.style.fontSize = mid + 'px';
-      if(fits()) lo = mid; else hi = mid;
+    val.style.fontSize = '';
+    val.style.whiteSpace = 'nowrap';
+    let px = parseFloat(getComputedStyle(val).fontSize);
+    const minPx = px * 0.45;
+    const room = () => main.clientWidth * 0.9;      // folga para o texto não encostar à moldura do ecrã
+    while(val.scrollWidth > room() && px > minPx){
+      px *= 0.94;
+      val.style.fontSize = px + 'px';
     }
-    val.style.fontSize = (lo * 0.94) + 'px';          // pequena folga para o texto não encostar às margens do ecrã
-    if(!fits()) val.style.overflowWrap = 'anywhere';
+    if(val.scrollWidth > room()) val.style.whiteSpace = 'normal';
   });
 }
 
@@ -2266,7 +2237,7 @@ function renderCanais(){
   body.innerHTML = slice.map(row => {
     const chans = chanCols.filter(col => getCol(row, col));
     const nCh = chans.length;
-    const cols = nCh <= 5 ? Math.max(1, nCh) : Math.ceil(nCh / 2);   // ecrãs lado a lado (até 5 numa linha)
+    const cols = Math.max(1, nCh);   // todos os canais lado a lado, numa só linha
     const tiles = chans.map(col => {
       const label = col.replace('Canal ', '');
       const val = canalValor(label, getCol(row, col));
@@ -2289,7 +2260,7 @@ function renderCanais(){
     return `
       <div class="c2-theatre-card">
         <div class="th-top">
-          <span class="th-kicker"><span class="icon-walkie"></span>Evento</span>
+          <span class="th-kicker"><span class="icon-walkie"></span>Teatro Operações</span>
           <div class="theatre-name ${nomeSz}">${escapeHtml(nome)}</div>
           ${hor ? `<span class="th-time">${SVG_CLOCK_MINI}<span class="th-time-label">Hora</span><span class="th-time-val">${escapeHtml(hor)}</span></span>` : ''}
         </div>
@@ -2299,11 +2270,11 @@ function renderCanais(){
       </div>
     `;
   }).join('');
-  body.classList.remove('fitted-body');   // mede com a grelha de 3 terços
   body.style.setProperty('--fit', 1);
-  fitBody(body);
-  layoutRadios(body);      // ecrãs ajustados ao espaço livre
-  fitRadioValues(body);    // canal no maior tamanho que cabe no ecrã
+  layoutRadios(body);
+  fitRadioValues(body);    // valor do canal grande, reduzido só se não couber
+  fitBody(body);           // se as caixas não couberem no quadro, reduz tudo por igual
+  fitRadioValues(body);
 }
 
 /* ==================== RENDER: VEÍCULOS INOP ==================== */
