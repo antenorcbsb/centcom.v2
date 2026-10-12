@@ -2253,7 +2253,7 @@ function renderCanais(){
       `;
     }).join('');
 
-    const hor = getCol(row, 'Horario');
+    // A hora (coluna "Horario") continua a decidir quando o teatro aparece/desaparece, mas não é mostrada.
     const nome = getCol(row, 'Evento') || findCol(row, ['evento']) || 'Plano de Comunicações';
     const nomeSz = nome.length > 90 ? 'xs' : (nome.length > 52 ? 'sm' : '');
 
@@ -2262,7 +2262,6 @@ function renderCanais(){
         <div class="th-top">
           <span class="th-kicker"><span class="icon-walkie"></span>Teatro Operações</span>
           <div class="theatre-name ${nomeSz}">${escapeHtml(nome)}</div>
-          ${hor ? `<span class="th-time">${SVG_CLOCK_MINI}<span class="th-time-label">Hora</span><span class="th-time-val">${escapeHtml(hor)}</span></span>` : ''}
         </div>
         <div class="channels-grid" style="--cols:${cols}">
           ${tiles || '<div class="rs-empty">Sem canais atribuídos</div>'}
