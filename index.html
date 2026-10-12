@@ -1298,6 +1298,20 @@
   .c2-risk-banner.risk-high { border-color: rgba(249,115,22,0.6); background: rgba(249,115,22,0.10); }
   .c2-risk-banner.risk-max  { border-color: rgba(244,63,94,0.75); background: rgba(244,63,94,0.14); animation: alert-pulse-red 1.4s ease-in-out infinite; }
 
+  /* EPE — Estado de Prontidão Especial (lido da folha "EPE" do Comando_dashboard) */
+  .c2-epe-banner { gap: 8px; }
+  .c2-epe-banner .epe-right { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .c2-epe-banner .epe-period { font-family: var(--font-mono); font-size: 9.2px; color: var(--text-secondary); white-space: nowrap; }
+  .c2-epe-banner .epe-resp { font-family: var(--font-mono); font-size: 9.2px; color: var(--text-secondary); white-space: nowrap; text-transform: uppercase; letter-spacing: 0.4px; }
+  .c2-epe-banner .epe-resp b { color: var(--text-primary); }
+  .c2-epe-banner .epe-sigla { font-family: var(--font-mono); font-weight: 800; letter-spacing: 0.6px; }
+  .c2-epe-banner .epe-nome { color: var(--text-secondary); font-weight: 500; }
+  .c2-epe-banner.epe-amarelo  { border-color: rgba(250,204,21,0.55);  background: rgba(250,204,21,0.08); }
+  .c2-epe-banner.epe-laranja  { border-color: rgba(249,115,22,0.6);   background: rgba(249,115,22,0.10); }
+  .c2-epe-banner.epe-vermelho { border-color: rgba(244,63,94,0.75);   background: rgba(244,63,94,0.14); animation: alert-pulse-red 1.4s ease-in-out infinite; }
+  .c2-epe-banner.epe-azul     { border-color: rgba(56,189,248,0.55);  background: rgba(56,189,248,0.08); }
+  .c2-epe-banner .c2-risk-indicator.epe-none { background: rgba(148,163,184,0.25); color: var(--text-secondary); }
+
   /* Quadro Meteorologia: caixas mais juntas */
   #meteo-body { gap: 4px; }
   #meteo-body .meteo-kpi-grid { margin-top: 0; gap: 4px; }
@@ -1657,6 +1671,7 @@ const SHEET_COMANDO_ID = '1XPVKo_d35yV3k4C1CF82wL43m0ku-wvkcksmcG5CfnQ';
 const SHEET_OPTEL_ID   = '13xtfCezanpDdvjd2cACrK9gIj3Dt12m-YHTnRzVlYOA';
 const GID_AGENDAMENTOS = 0;
 const GID_COMUNICACOES = 1492833476;
+const GID_EPE          = 735100;      // folha "EPE" (Estado de Prontidão Especial) no Comando_dashboard
 const GID_CANAIS       = 752912776;   // folha "Canais Radio"
 const GID_VEICULOS     = 171672820;   // folha "Veículos"
 
@@ -2543,6 +2558,75 @@ function warnPeriodo(ini, fim){
   return `de ${dia(ini)} ${hora(ini)} até ${dia(fim)} ${hora(fim)}`;
 }
 
+/* ==================== EPE — ESTADO DE PRONTIDÃO ESPECIAL ==================== */
+// Folha "EPE" do Comando_dashboard: Nível (Nível 1 a Nível 4), Data Início, Hora Início,
+// Data Fim, Hora Fim, Observações. Mostra o nível mais grave em vigor; sem nada em vigor, o próximo previsto.
+// Grau de prontidão / tempo de resposta de cada nível (1 = mais baixo, 4 = mais alto)
+const EPE_NIVEIS = {
+  1: { ordem: 1, cor: '#38bdf8', classe: 'azul',     nome: 'Nível 1', resposta: 'Até 12 h' },
+  2: { ordem: 2, cor: '#facc15', classe: 'amarelo',  nome: 'Nível 2', resposta: 'Até 6 h' },
+  3: { ordem: 3, cor: '#f97316', classe: 'laranja',  nome: 'Nível 3', resposta: 'Até 2 h' },
+  4: { ordem: 4, cor: '#f43f5e', classe: 'vermelho', nome: 'Nível 4', resposta: 'Imediato' },
+};
+function epeNivel(txt){
+  const t = stripDiacritics(txt || '');
+  const m = t.match(/[1-4]/) || (t.match(/\b(iv|iii|ii|i)\b/) ? [ {i:'1',ii:'2',iii:'3',iv:'4'}[t.match(/\b(iv|iii|ii|i)\b/)[1]] ] : null);
+  return m ? EPE_NIVEIS[m[0]] : null;
+}
+function epeDataHora(dataStr, horaStr, fimDoDia){
+  const d = parseDatePT(dataStr);
+  if(!d) return null;
+  const dt = new Date(d);
+  const tr = parseTimeRange(horaStr || '');
+  const min = tr && tr.start != null ? tr.start : (fimDoDia ? 23*60 + 59 : 0);
+  dt.setHours(0, min, fimDoDia && !(tr && tr.start != null) ? 59 : 0, 0);
+  return dt;
+}
+function epeRegistos(){
+  return (state.epe || []).map(r => {
+    const nivel = epeNivel(getCol(r, 'Nivel', 'Nível') || findCol(r, ['nivel']));
+    if(!nivel) return null;
+    return {
+      nivel,
+      ini: epeDataHora(getCol(r, 'Data Inicio', 'Data Início'), getCol(r, 'Hora Inicio', 'Hora Início'), false),
+      fim: epeDataHora(getCol(r, 'Data Fim'), getCol(r, 'Hora Fim'), true),
+      obs: getCol(r, 'Observacoes', 'Observações'),
+    };
+  }).filter(Boolean);
+}
+function epeAtual(){
+  const now = new Date();
+  const regs = epeRegistos().filter(e => !e.fim || now <= e.fim);   // tira os que já terminaram
+  const emVigor = regs.filter(e => !e.ini || e.ini <= now)
+                      .sort((a, b) => b.nivel.ordem - a.nivel.ordem);
+  if(emVigor.length) return { ...emVigor[0], vigor: true };
+  const previstos = regs.filter(e => e.ini && e.ini > now).sort((a, b) => a.ini - b.ini);
+  return previstos.length ? { ...previstos[0], vigor: false } : null;
+}
+function epeHtml(){
+  const e = epeAtual();
+  const p2 = n => String(n).padStart(2, '0');
+  const fmt = d => `${p2(d.getDate())}/${p2(d.getMonth()+1)} ${p2(d.getHours())}:${p2(d.getMinutes())}`;
+  const titulo = `
+      <div class="risk-title-side">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 3 5v6c0 5.25 3.83 10.16 9 11 5.17-.84 9-5.75 9-11V5l-9-3zm0 2.18 7 2.33V11c0 4.18-2.98 8.08-7 8.9-4.02-.82-7-4.72-7-8.9V6.51l7-2.33z"/></svg>
+        <span class="epe-sigla">EPE</span><span class="epe-nome">Estado de Prontidão Especial</span>
+      </div>`;
+  if(!e){
+    return `<div class="c2-risk-banner c2-epe-banner">${titulo}
+      <span class="c2-risk-indicator epe-none">Sem EPE</span></div>`;
+  }
+  let periodo = '';
+  if(e.ini && e.fim) periodo = `${fmt(e.ini)} → ${fmt(e.fim)}`;
+  else if(e.fim)     periodo = `até ${fmt(e.fim)}`;
+  else if(e.ini)     periodo = `desde ${fmt(e.ini)}`;
+  const tag = e.vigor ? '<span class="c2-warn-tag vigor">EM VIGOR</span>' : '<span class="c2-warn-tag prev">PREVISTO</span>';
+  return `<div class="c2-risk-banner c2-epe-banner ${e.vigor ? 'epe-' + e.nivel.classe : ''}"${e.obs ? ` title="${escapeHtml(e.obs)}"` : ''}>${titulo}
+      <span class="epe-right">${tag}${periodo ? `<span class="epe-period">${periodo}</span>` : ''}
+        <span class="epe-resp">Resposta <b>${e.nivel.resposta}</b></span>
+        <span class="c2-risk-indicator" style="background:${e.nivel.cor}">${e.nivel.nome}</span></span></div>`;
+}
+
 function renderWeather(){
   const body = document.getElementById('meteo-body');
   const c = weatherState.current;
@@ -2659,6 +2743,7 @@ function renderWeather(){
         ${warningsHtml}
       </div>
       ${riskHtml}
+      ${epeHtml()}
     </div>
 
   `;
@@ -2666,12 +2751,14 @@ function renderWeather(){
 
 /* ==================== DATA SYNC ==================== */
 async function loadSheets(){
-  const [ag, co, ca, ve] = await Promise.all([
+  const [ag, co, ca, ve, ep] = await Promise.all([
     fetchSheet(SHEET_COMANDO_ID, GID_AGENDAMENTOS),
     fetchSheet(SHEET_COMANDO_ID, GID_COMUNICACOES),
     fetchSheet(SHEET_OPTEL_ID, GID_CANAIS),
     fetchSheet(SHEET_OPTEL_ID, GID_VEICULOS),
+    fetchSheet(SHEET_COMANDO_ID, GID_EPE),
   ]);
+  if(ep) state.epe = ep;
   if(ag) state.agendamentos = ag;
   if(co) state.comunicacoes = co;
   if(ca) state.canais = ca;
@@ -2700,6 +2787,7 @@ function renderAll(){
   renderVeiculos();
   renderTicker();
   updateRotateBars();
+  renderWeather();   // inclui a linha EPE (lida do Sheets)
 }
 
 /* ==================== [4] BARRA DE ROTAÇÃO ==================== */
