@@ -418,9 +418,21 @@ body.sem-mapa #painelMapa,body.sem-mapa #btnZonas{display:none}
 .oc .meio.desce sup{color:#94a3b8}
 @keyframes meioSobe{50%{box-shadow:0 0 0 3px rgba(251,191,36,0.25)}}
 
+/* ================= SEM CONCELHOS VIZINHOS ================= */
+body.sem-vizinhos #btnVizinhos{display:none}
+body.sem-vizinhos.sem-mapa .acoes{display:none}
+
 /* ================= MODO DISTRITO ================= */
 body.modo-distrito #btnVizinhos,body.modo-distrito #btnZonas,body.modo-distrito .acoes{display:none}
 body.modo-distrito .secao{font-size:11px;color:#e2e8f0;padding-top:10px}
+
+/* Nomes dos concelhos no mapa do distrito */
+.rotulo-conc{background:none;border:0}
+.rotulo-conc span{display:inline-block;transform:translate(-50%,-50%);white-space:nowrap;text-align:center;
+  font-family:var(--font-mono);font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#0f2a4d;
+  text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 2px #fff;pointer-events:none}
+.rotulo-conc span.braga{color:#334155}
+.rotulo-conc small{display:block;font-size:8px;font-weight:600;text-transform:none;letter-spacing:0;color:#475569}
 </style>
 </head>
 <body>
@@ -545,13 +557,16 @@ const CONFIG = {
   CONCELHOS_DISTRITO: { '0301':'Amares', '0302':'Barcelos', '0303':'Braga', '0304':'Cabeceiras de Basto',
     '0305':'Celorico de Basto', '0306':'Esposende', '0307':'Fafe', '0308':'Guimarães', '0309':'Póvoa de Lanhoso',
     '0310':'Terras de Bouro', '0311':'Vieira do Minho', '0312':'Vila Nova de Famalicão', '0313':'Vila Verde', '0314':'Vizela' },
+  MOSTRAR_VIZINHOS: false,      // botão "Concelhos vizinhos" na página do concelho (true = volta a aparecer)
   ALERTA_ECRA: false,           // aviso em ecrã inteiro para ocorrências novas
   SOM: false,                   // som nas ocorrências novas / agravadas
-  MOSTRAR_MAPA: false,          // false = sem mapa: a lista ocupa a largura toda (true = volta a mostrar o mapa)
+  MAPA_LARGURA_MAX: 0.33,       // largura máxima do mapa, em fração do ecrã (0.33 = um terço; 0.25 = um quarto)
+  MOSTRAR_MAPA: true,           // false = sem mapa: a lista ocupa a largura toda (true = volta a mostrar o mapa)
   ATUALIZAR_SEG: 120,
   EMBLEMA: '',                  // vazio = usa o emblema embutido (o mesmo da dashboard); ou nome de ficheiro, ex.: 'emblema.png'
   // Limites aproximados do concelho (usados se o contorno não carregar)
   LIMITES_RESERVA: [[41.465, -8.535], [41.625, -8.305]],
+  LIMITES_DISTRITO: [[41.30, -8.83], [41.97, -7.83]],   // distrito de Braga (reserva, se os contornos não carregarem)
   // Quartéis: colar as coordenadas do Google Maps (clique direito no quartel > copiar números)
   QUARTEIS: [
     { sigla: 'BSB', nome: 'Batalhão de Sapadores Bombeiros de Braga', lat: 41.569028, lng: -8.427222 },
@@ -649,6 +664,10 @@ if (DISTRITO){
   if (p) p.textContent = 'Distrito de Braga (fora do concelho) · Cent Com. Batalhão Sapadores Bombeiros Braga';
   const c = document.getElementById('contador'); if (c) c.title = 'Ocorrências no distrito de Braga (fora do concelho de Braga)';
   const op = document.querySelector('#freguesia option'); if (op) op.textContent = 'Todos os concelhos';
+  const hm = document.querySelector('#painelMapa h2'); if (hm) hm.textContent = 'Mapa do Distrito de Braga';
+  const pm = document.getElementById('painelMapa'); if (pm) pm.setAttribute('aria-label','Mapa do distrito de Braga');
+  const bc = document.getElementById('btnCentrar'); if (bc){ bc.textContent = '⌖ Distrito'; bc.title = 'Voltar à vista do distrito'; }
+  CONFIG.LIMITES_RESERVA = CONFIG.LIMITES_DISTRITO; CONFIG.ZOOM_EXTRA = 0; CONFIG.MOSTRAR_NOMES_FREGUESIAS = false;
 }
 
 /* ---------- Modo sem mapa ---------- */
@@ -772,9 +791,9 @@ function ajustarLarguraMapa(){
   const latM = (b.getNorth() + b.getSouth()) / 2 * Math.PI / 180;
   const proporcao = ((b.getEast() - b.getWest()) * Math.cos(latM)) / (b.getNorth() - b.getSouth());
   const h = (area && area.clientHeight) || window.innerHeight;
-  const maxW = window.innerWidth - 400;
+  const maxW = Math.min(window.innerWidth - 400, window.innerWidth * (CONFIG.MAPA_LARGURA_MAX || 0.33));
   const extra = vistaConcelho() ? Math.pow(2, CONFIG.ZOOM_EXTRA || 0) : 1;
-  wrap.style.width = Math.round(Math.max(360, Math.min(maxW, h * proporcao * extra + 12))) + 'px';
+  wrap.style.width = Math.round(Math.max(300, Math.min(maxW, h * proporcao * extra + 12))) + 'px';
 }
 enquadrar();
 window.addEventListener('resize', () => { clearTimeout(window._rz); window._rz = setTimeout(enquadrar,150); });
@@ -782,6 +801,7 @@ window.addEventListener('resize', () => { clearTimeout(window._rz); window._rz =
 let nomesFreguesias = [];
  
 async function carregarContorno(){
+  if (DISTRITO) return carregarContornoDistrito();
   // 1) cópia guardada no navegador (30 dias)
   try{
     const c = JSON.parse(localStorage.getItem('braga_contorno') || 'null');
@@ -815,6 +835,97 @@ async function carregarContorno(){
   nomesFreguesias = fr;
 }
  
+
+/* ---------- Mapa do distrito: contorno dos 14 concelhos ---------- */
+const geoConc = {};   // nome -> {linhas:[polygon], bounds}
+let concRealcado = null;
+function aneisDe(gj){
+  const aneis = [];
+  const juntar = g => {
+    if (!g) return;
+    if (g.type === 'FeatureCollection') g.features.forEach(f => juntar(f.geometry));
+    else if (g.type === 'Feature') juntar(g.geometry);
+    else if (g.type === 'Polygon') aneis.push(g.coordinates[0]);
+    else if (g.type === 'MultiPolygon') g.coordinates.forEach(pl => aneis.push(pl[0]));
+  };
+  juntar(gj);
+  // [lat,lng] com 4 casas decimais (~10 m) e sem pontos repetidos: fica leve para guardar no navegador
+  return aneis.map(a => a.map(([x,y]) => [+(+y).toFixed(4), +(+x).toFixed(4)])
+    .filter((p,i,arr) => i === 0 || p[0] !== arr[i-1][0] || p[1] !== arr[i-1][1]));
+}
+async function contornoMunicipio(nome){
+  try{
+    const r = await fetch('https://json.geoapi.pt/municipio/' + encodeURIComponent(nome));
+    let j = await r.json(); if (Array.isArray(j)) j = j[0];
+    const gj = (j.geojsons && j.geojsons.municipio) || j.geojson || null;
+    if (gj) return aneisDe(gj);
+  }catch(e){}
+  return null;
+}
+async function contornoNominatim(nome){
+  try{
+    const u = 'https://nominatim.openstreetmap.org/search?format=geojson&polygon_geojson=1&polygon_threshold=0.0005&countrycodes=pt&q=' + encodeURIComponent(nome + ', Braga, Portugal');
+    const j = await (await fetch(u)).json();
+    const feats = (j.features||[]).filter(f => /Polygon/.test(f.geometry && f.geometry.type));
+    const mun = feats.find(f => f.properties && f.properties.addresstype === 'municipality') || feats[0];
+    if (mun) return aneisDe(mun);
+  }catch(e){}
+  return null;
+}
+async function carregarContornoDistrito(){
+  let dados = null;
+  try{
+    const c = JSON.parse(localStorage.getItem('distrito_contornos_v1') || 'null');
+    if (c && Date.now() - c.t < 30*864e5 && Object.keys(c.d||{}).length >= 10) dados = c.d;
+  }catch(e){}
+  if (!dados){
+    dados = {};
+    const nomes = Object.values(CONCELHOS);
+    await Promise.all(nomes.map(async n => { const a = await contornoMunicipio(n); if (a && a.length) dados[n] = a; }));
+    // reserva: OpenStreetMap, um pedido de cada vez (regras do Nominatim)
+    for (const n of nomes.filter(n => !dados[n])){
+      const a = await contornoNominatim(n); if (a && a.length) dados[n] = a;
+      await new Promise(r => setTimeout(r, 1100));
+    }
+    if (Object.keys(dados).length){ try{ localStorage.setItem('distrito_contornos_v1', JSON.stringify({t:Date.now(), d:dados})); }catch(e){} }
+  }
+  desenharDistrito(dados);
+}
+function desenharDistrito(dados){
+  try{
+    const todos = [];
+    let b = null;
+    Object.entries(dados).forEach(([nome, aneis]) => {
+      const eBraga = nome === CONCELHOS[CONFIG.DICO];
+      const linhas = aneis.map(a => L.polygon(a, {
+        color:'#1D4F91', weight:1.6, opacity:.9, interactive:false,
+        fill:eBraga, fillColor:'#64748b', fillOpacity:eBraga ? .28 : 0
+      }).addTo(mapa));
+      const bb = L.latLngBounds(aneis.flat());
+      geoConc[nome] = {linhas, bounds:bb};
+      b = b ? b.extend(bb) : L.latLngBounds(bb.getSouthWest(), bb.getNorthEast());
+      aneis.forEach(a => todos.push(a));
+      L.marker(bb.getCenter(), {interactive:false, keyboard:false,
+        icon:L.divIcon({className:'rotulo-conc', iconSize:null, html:`<span${eBraga?' class="braga"':''}>${esc(nome)}${eBraga?'<small>ver página do concelho</small>':''}</span>`})
+      }).addTo(mapa);
+    });
+    if (todos.length){
+      const mundo = [[85,-180],[85,180],[-85,180],[-85,-180]];
+      L.polygon([mundo, ...todos], {stroke:false, fillColor:'#070b12', fillOpacity:.35, interactive:false}).addTo(mapa);
+      Object.values(geoConc).forEach(g => g.linhas.forEach(pl => pl.bringToFront()));
+    }
+    if (b && b.isValid()){ limites = b; enquadrar(); }
+  }catch(e){}
+}
+function realcarConcelho(nome){
+  if (nome === concRealcado) return;
+  const antigo = geoConc[concRealcado];
+  if (antigo) antigo.linhas.forEach(pl => pl.setStyle({color:'#1D4F91', weight:1.6, opacity:.9}));
+  concRealcado = nome;
+  const novo = geoConc[nome];
+  if (novo) novo.linhas.forEach(pl => { pl.setStyle({color:cssVar('--azul'), weight:3.5, opacity:1}); pl.bringToFront(); });
+}
+
 function desenharContorno(gj){
   try{
     contorno = L.geoJSON(gj,{style:{color:cssVar('--azul'),weight:3,fill:false,interactive:false}}).addTo(mapa);
@@ -856,14 +967,14 @@ async function carregarDados(){
     el.className = 'estado-ligacao erro'; desenhar(); return;
   }
   try{
-    const dicos = (DISTRITO ? Object.keys(CONCELHOS).filter(d => d !== CONFIG.DICO) : [CONFIG.DICO, ...Object.keys(CONFIG.VIZINHOS||{})]).join(',');
+    const dicos = (DISTRITO ? Object.keys(CONCELHOS).filter(d => d !== CONFIG.DICO) : [CONFIG.DICO, ...(CONFIG.MOSTRAR_VIZINHOS ? Object.keys(CONFIG.VIZINHOS||{}) : [])]).join(',');
     const url = CONFIG.ENDPOINT + (CONFIG.ENDPOINT.includes('?')?'&':'?') + 'dico=' + dicos
       + (CONFIG.CHAVE_ACESSO ? '&k=' + encodeURIComponent(CONFIG.CHAVE_ACESSO) : '') + '&_=' + Date.now();
     const j = await (await fetch(url)).json();
     if (!j.ok) throw new Error(j.erro || 'Resposta inválida do intermediário.');
     const todas = (j.ocorrencias||[]).map(o => ({...o, dico:String(o.dico).padStart(4,'0')}));
     ocorrencias = DISTRITO ? todas.filter(o => o.dico !== CONFIG.DICO && CONCELHOS[o.dico]) : todas.filter(o => o.dico === CONFIG.DICO);
-    vizinhas = DISTRITO ? [] : todas.filter(o => o.dico !== CONFIG.DICO && (CONFIG.VIZINHOS||{})[o.dico]);
+    vizinhas = (DISTRITO || !CONFIG.MOSTRAR_VIZINHOS) ? [] : todas.filter(o => o.dico !== CONFIG.DICO && (CONFIG.VIZINHOS||{})[o.dico]);
     jaRecebeuDados = true;
     horaDados = new Date(j.atualizado || Date.now()).getTime();
     verificarNovas();
@@ -1214,6 +1325,7 @@ setInterval(atualizarFrescura, 30000);
 /* ---------- Concelhos vizinhos ---------- */
 let mostrarVizinhos = false;
 try { mostrarVizinhos = localStorage.getItem('oc_vizinhos') === '1'; } catch(e){}
+if (!CONFIG.MOSTRAR_VIZINHOS) { mostrarVizinhos = false; document.body.classList.add('sem-vizinhos'); }
 const btnVizinhos = $('btnVizinhos');
 btnVizinhos.addEventListener('click', () => {
   mostrarVizinhos = !mostrarVizinhos;
@@ -1310,7 +1422,7 @@ function desenhar(){
     const m = L.marker([o.lat,o.lng],{icon, keyboard:false, zIndexOffset: viz ? -50 : 0}).addTo(camada);
     const inicio = o.inicio ? new Date(o.inicio).toLocaleString('pt-PT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
     const dist = textoDist(o);
-    const local = viz ? [(CONFIG.VIZINHOS||{})[o.dico], o.freguesia, o.localidade] : [o._freg || o.freguesia, o.localidade];
+    const local = viz ? [(CONFIG.VIZINHOS||{})[o.dico], o.freguesia, o.localidade] : (DISTRITO ? [nomeConcelho(o), o.freguesia, o.localidade] : [o._freg || o.freguesia, o.localidade]);
     m.bindPopup(`<b>${esc(o.natureza||'Ocorrência')}</b><br>${esc(e.nome)}<br>${esc(local.filter(Boolean).join(' — '))}<br>Início: ${inicio}<br>Op. ${o.operacionais} · Terr. ${o.terrestres} · Aér. ${o.aereos}${dist?'<br>'+dist:''}`,{autoPan:false});
     m.on('click', () => selecionar(o.id, false));
     marcadores[o.id] = m;
@@ -1319,8 +1431,10 @@ function desenhar(){
   });
 
   // vista: freguesia escolhida, Braga, ou Braga + ocorrências vizinhas
-  realcarFreguesia(filtro);
-  let vista = (filtro && geoFreg[filtro] && geoFreg[filtro].bounds) ? geoFreg[filtro].bounds : limites;
+  if (DISTRITO) realcarConcelho(filtro); else realcarFreguesia(filtro);
+  let vista = DISTRITO
+    ? ((filtro && geoConc[filtro]) ? geoConc[filtro].bounds : limites)
+    : ((filtro && geoFreg[filtro] && geoFreg[filtro].bounds) ? geoFreg[filtro].bounds : limites);
   const pts = listaV.filter(x => x.o.lat != null && x.o.lng != null).map(x => [x.o.lat, x.o.lng]);
   if (pts.length && !filtro) vista = L.latLngBounds(limites.getSouthWest(), limites.getNorthEast()).extend(L.latLngBounds(pts));
   const chave = vista.toBBoxString();
@@ -1629,10 +1743,13 @@ pedirEcraLigado();
 
 /* ---------- Arranque ---------- */
 (async function(){
-  await carregarContorno();
-  carregarFreguesias().then(() => desenhar());
-  aplicarZonas();
-  calcularZonas();
+  // no distrito os 14 contornos podem demorar: as ocorrências não ficam à espera deles
+  if (DISTRITO) carregarContorno(); else await carregarContorno();
+  if (!DISTRITO){
+    carregarFreguesias().then(() => desenhar());
+    aplicarZonas();
+    calcularZonas();
+  }
   await carregarDados();
   setInterval(carregarDados, CONFIG.ATUALIZAR_SEG * 1000);
   setInterval(desenhar, 60000); // atualiza os "há X min"
