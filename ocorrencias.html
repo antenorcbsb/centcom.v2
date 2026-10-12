@@ -366,7 +366,7 @@ footer.c2-ticker{
 body.sem-mapa main.corpo{grid-template-columns:1fr}
 body.sem-mapa #painelMapa,body.sem-mapa #btnZonas{display:none}
 /* Cada caixa fica com a altura do seu conteúdo (não estica para igualar as vizinhas) */
-.lista{align-items:start;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:6px}
+.lista{align-items:start;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));grid-auto-rows:max-content;gap:6px}
 .oc .oc-ico{flex-basis:34px;width:34px;height:34px;margin:7px 0 0 8px}
 .oc.viz .oc-ico{flex-basis:28px;width:28px;height:28px}
 .oc .conteudo{padding:6px 10px 6px 8px}
@@ -417,6 +417,10 @@ body.sem-mapa #painelMapa,body.sem-mapa #btnZonas{display:none}
 .oc .meio.desce{border-color:rgba(148,163,184,0.6);background:rgba(148,163,184,0.10)}
 .oc .meio.desce sup{color:#94a3b8}
 @keyframes meioSobe{50%{box-shadow:0 0 0 3px rgba(251,191,36,0.25)}}
+
+/* ================= MODO DISTRITO ================= */
+body.modo-distrito #btnVizinhos,body.modo-distrito #btnZonas,body.modo-distrito .acoes{display:none}
+body.modo-distrito .secao{font-size:11px;color:#e2e8f0;padding-top:10px}
 </style>
 </head>
 <body>
@@ -535,7 +539,14 @@ body.sem-mapa #painelMapa,body.sem-mapa #btnZonas{display:none}
 const CONFIG = {
   // Endereço /exec do Apps Script "Intermediario Fogos"
   ENDPOINT: 'https://script.google.com/macros/s/AKfycbzVvoPqEBcY0HkyDbSXyqSOCy3b4pTg7KEIBXsAo7qow5B8hjlM3-QdAckbgfySf2iupA/exec',
+  // 'concelho' = só o concelho de Braga  ·  'distrito' = restantes concelhos do distrito de Braga
+  MODO: 'concelho',
   DICO: '0303',                 // concelho de Braga
+  CONCELHOS_DISTRITO: { '0301':'Amares', '0302':'Barcelos', '0303':'Braga', '0304':'Cabeceiras de Basto',
+    '0305':'Celorico de Basto', '0306':'Esposende', '0307':'Fafe', '0308':'Guimarães', '0309':'Póvoa de Lanhoso',
+    '0310':'Terras de Bouro', '0311':'Vieira do Minho', '0312':'Vila Nova de Famalicão', '0313':'Vila Verde', '0314':'Vizela' },
+  ALERTA_ECRA: true,            // aviso em ecrã inteiro para ocorrências novas
+  SOM: true,                    // som nas ocorrências novas / agravadas
   MOSTRAR_MAPA: false,          // false = sem mapa: a lista ocupa a largura toda (true = volta a mostrar o mapa)
   ATUALIZAR_SEG: 120,
   EMBLEMA: '',                  // vazio = usa o emblema embutido (o mesmo da dashboard); ou nome de ficheiro, ex.: 'emblema.png'
@@ -626,6 +637,20 @@ const ICONES = {
 };
  
 
+/* ---------- Modo concelho / distrito ---------- */
+const DISTRITO = CONFIG.MODO === 'distrito';
+const PREF = DISTRITO ? 'dist_' : '';            // memória do navegador separada para cada página
+const CONCELHOS = CONFIG.CONCELHOS_DISTRITO || {};
+const nomeConcelho = o => CONCELHOS[o.dico] || o.concelho || 'Concelho ?';
+if (DISTRITO){
+  document.title = 'Ocorrências ativas · Distrito de Braga';
+  document.body.classList.add('modo-distrito');
+  const p = document.querySelector('.brand-meta p');
+  if (p) p.textContent = 'Distrito de Braga (fora do concelho) · Cent Com. Batalhão Sapadores Bombeiros Braga';
+  const c = document.getElementById('contador'); if (c) c.title = 'Ocorrências no distrito de Braga (fora do concelho de Braga)';
+  const op = document.querySelector('#freguesia option'); if (op) op.textContent = 'Todos os concelhos';
+}
+
 /* ---------- Modo sem mapa ---------- */
 if (CONFIG.MOSTRAR_MAPA === false) document.body.classList.add('sem-mapa');
 
@@ -667,6 +692,7 @@ const REGRAS_NATUREZA = [
   [/arvore/, 'queda_de_arvore'],
   [/desabamento|derrocada/, 'desabamento_de_estruturas_edificadas'],
   [/degradad|devolut/, 'edificios_degradados_ou_devolutos'],
+  [/queima/, 'agricola'],
   [/mato|florest|povoamento/, 'mato'],
   [/agricola/, 'agricola'],
   [/habitacional/, 'habitacional'],
@@ -830,20 +856,20 @@ async function carregarDados(){
     el.className = 'estado-ligacao erro'; desenhar(); return;
   }
   try{
-    const dicos = [CONFIG.DICO, ...Object.keys(CONFIG.VIZINHOS||{})].join(',');
+    const dicos = (DISTRITO ? Object.keys(CONCELHOS).filter(d => d !== CONFIG.DICO) : [CONFIG.DICO, ...Object.keys(CONFIG.VIZINHOS||{})]).join(',');
     const url = CONFIG.ENDPOINT + (CONFIG.ENDPOINT.includes('?')?'&':'?') + 'dico=' + dicos
       + (CONFIG.CHAVE_ACESSO ? '&k=' + encodeURIComponent(CONFIG.CHAVE_ACESSO) : '') + '&_=' + Date.now();
     const j = await (await fetch(url)).json();
     if (!j.ok) throw new Error(j.erro || 'Resposta inválida do intermediário.');
     const todas = (j.ocorrencias||[]).map(o => ({...o, dico:String(o.dico).padStart(4,'0')}));
-    ocorrencias = todas.filter(o => o.dico === CONFIG.DICO);
-    vizinhas = todas.filter(o => o.dico !== CONFIG.DICO && (CONFIG.VIZINHOS||{})[o.dico]);
+    ocorrencias = DISTRITO ? todas.filter(o => o.dico !== CONFIG.DICO && CONCELHOS[o.dico]) : todas.filter(o => o.dico === CONFIG.DICO);
+    vizinhas = DISTRITO ? [] : todas.filter(o => o.dico !== CONFIG.DICO && (CONFIG.VIZINHOS||{})[o.dico]);
     jaRecebeuDados = true;
     horaDados = new Date(j.atualizado || Date.now()).getTime();
     verificarNovas();
     verificarAgravamentos();
     if (j.avisosIpma !== undefined) mostrarAvisos(j.avisosIpma);
-    if (j.resumoHoje !== undefined) mostrarResumo(j.resumoHoje);
+    if (j.resumoHoje !== undefined && !DISTRITO) mostrarResumo(j.resumoHoje);
     if (j.desatualizado){
       el.textContent = 'Dados de ' + hhmm(new Date(j.atualizado)) + ' — a fonte limitou os pedidos; nova tentativa automática.';
       el.className = 'estado-ligacao erro';
@@ -878,6 +904,17 @@ function fregCanonica(nome){
 /* ---------- Filtro por freguesia ---------- */
 function atualizarFiltro(){
   const sel = $('freguesia'), atual = sel.value;
+  if (DISTRITO){
+    const cont = {};
+    ocorrencias.forEach(o => { const n = nomeConcelho(o); cont[n] = (cont[n]||0) + 1; });
+    const nomes = new Set(Object.entries(CONCELHOS).filter(([d]) => d !== CONFIG.DICO).map(([,n]) => n));
+    Object.keys(cont).forEach(n => nomes.add(n));
+    const ord = [...nomes].sort((a,b) => a.localeCompare(b,'pt'));
+    sel.innerHTML = '<option value="">Todos os concelhos</option>' +
+      ord.map(n => `<option value="${esc(n)}">${esc(n)}${cont[n]?' ('+cont[n]+')':''}</option>`).join('');
+    sel.value = nomes.has(atual) ? atual : '';
+    return;
+  }
   const contagem = {};
   ocorrencias.forEach(o => { o._freg = fregCanonica(o.freguesia); contagem[o._freg] = (contagem[o._freg]||0) + 1; });
   const nomes = new Set(FREGUESIAS);
@@ -950,7 +987,7 @@ let alertasAtivos = false, audioCtx = null, primeiraCarga = true, piscaTitulo = 
 const tituloOriginal = document.title;
 const aPiscar = new Set();
 let vistos = {};
-try { vistos = JSON.parse(localStorage.getItem('oc_vistos') || '{}'); } catch(e){}
+try { vistos = JSON.parse(localStorage.getItem(PREF+'oc_vistos') || '{}'); } catch(e){}
 
 /* Alertas sempre ativos. O navegador só deixa tocar som depois do primeiro toque/clique na página:
    o primeiro toque em qualquer sítio liga o som, as notificações e o ecrã sempre ligado. */
@@ -1000,17 +1037,17 @@ function verificarNovas(){
       vistos[o.id] = isNaN(ini) ? agora : Math.min(ini, agora);
     } else {
       vistos[o.id] = agora;
-      if (o.dico === CONFIG.DICO) novas.push(o);
+      if (DISTRITO || o.dico === CONFIG.DICO) novas.push(o);
     }
   });
   Object.keys(vistos).forEach(k => { if (agora - vistos[k] > 3*864e5) delete vistos[k]; });
-  try { localStorage.setItem('oc_vistos', JSON.stringify(vistos)); } catch(e){}
+  try { localStorage.setItem(PREF+'oc_vistos', JSON.stringify(vistos)); } catch(e){}
   primeiraCarga = false;
   if (novas.length) alertar(novas);
 }
 
 function alertar(novas){
-  tocar(3);
+  if (CONFIG.SOM !== false) tocar(3);
   avisoVisual(novas, 'nova');
   novas.forEach(o => aPiscar.add(o.id));
   setTimeout(() => { novas.forEach(o => aPiscar.delete(o.id)); desenhar(); }, CONFIG.PISCAR_SEG * 1000);
@@ -1035,7 +1072,7 @@ const eNova = o => vistos[o.id] && (Date.now() - vistos[o.id]) < CONFIG.ALERTA_N
 
 /* ---------- Alerta de agravamento ---------- */
 let estadoAnt = {}, agravadas = {}, primeiraAgrav = true, mudancasMeios = {};
-try { estadoAnt = JSON.parse(localStorage.getItem('oc_estado') || '{}'); agravadas = JSON.parse(localStorage.getItem('oc_agravou') || '{}'); mudancasMeios = JSON.parse(localStorage.getItem('oc_meios') || '{}'); } catch(e){}
+try { estadoAnt = JSON.parse(localStorage.getItem(PREF+'oc_estado') || '{}'); agravadas = JSON.parse(localStorage.getItem(PREF+'oc_agravou') || '{}'); mudancasMeios = JSON.parse(localStorage.getItem(PREF+'oc_meios') || '{}'); } catch(e){}
 function verificarAgravamentos(){
   const agora = Date.now(), lista = [];
   ocorrencias.forEach(o => {
@@ -1061,13 +1098,13 @@ function verificarAgravamentos(){
   Object.keys(estadoAnt).forEach(k => { if (agora - estadoAnt[k].t > 3*864e5) delete estadoAnt[k]; });
   Object.keys(agravadas).forEach(k => { if (agora - agravadas[k].t > 864e5) delete agravadas[k]; });
   Object.keys(mudancasMeios).forEach(k => { if (agora - mudancasMeios[k].t > CONFIG.MEIOS_MUDOU_MIN*60000) delete mudancasMeios[k]; });
-  try { localStorage.setItem('oc_estado', JSON.stringify(estadoAnt)); localStorage.setItem('oc_agravou', JSON.stringify(agravadas)); localStorage.setItem('oc_meios', JSON.stringify(mudancasMeios)); } catch(e){}
+  try { localStorage.setItem(PREF+'oc_estado', JSON.stringify(estadoAnt)); localStorage.setItem(PREF+'oc_agravou', JSON.stringify(agravadas)); localStorage.setItem(PREF+'oc_meios', JSON.stringify(mudancasMeios)); } catch(e){}
   primeiraAgrav = false;
   if (lista.length) alertarAgravamento(lista);
 }
 function alertarAgravamento(lista){
   // som mais grave e longo, diferente do de nova ocorrência
-  if (alertasAtivos && audioCtx){
+  if (alertasAtivos && audioCtx && CONFIG.SOM !== false){
     const t0 = audioCtx.currentTime + 0.05;
     [0, 0.7].forEach(d => {
       const osc = audioCtx.createOscillator(), g = audioCtx.createGain();
@@ -1087,11 +1124,12 @@ function alertarAgravamento(lista){
 let avisoTimer = null;
 function avisoVisual(lista, tipo){
   const el = $('avisoEcra');
+  if (CONFIG.ALERTA_ECRA === false) { el.hidden = true; }
   const titulo = tipo === 'nova'
     ? (lista.length > 1 ? `${lista.length} NOVAS OCORRÊNCIAS` : 'NOVA OCORRÊNCIA')
     : (lista.length > 1 ? `${lista.length} OCORRÊNCIAS AGRAVARAM` : 'OCORRÊNCIA AGRAVOU');
   const linhas = lista.slice(0, 4).map(o => {
-    const local = [o._freg || o.freguesia, o.localidade].filter(Boolean).join(' — ');
+    const local = [DISTRITO ? nomeConcelho(o) : '', o._freg || o.freguesia, o.localidade].filter(Boolean).join(' — ');
     const d = distancias(o);
     const dist = d ? d.map((x,i) => `${quarteis[i].sigla} ${fmtKm(x.km)} km`).join(' · ') : '';
     const motivo = tipo === 'agravou' && agravadas[o.id] ? agravadas[o.id].m : '';
@@ -1102,7 +1140,7 @@ function avisoVisual(lista, tipo){
   el.className = 'aviso-ecra av-' + tipo;
   el.innerHTML = `<div class="av-caixa${lista.length > 1 ? ' varias' : ''}"><div class="av-titulo">${tipo === 'nova' ? '🔴' : '🟠'} ${titulo}</div>${linhas}
     <div class="av-fechar">Tocar para fechar</div></div>`;
-  el.hidden = false;
+  el.hidden = CONFIG.ALERTA_ECRA === false;
   clearTimeout(avisoTimer);
   if (CONFIG.AVISO_ECRA_SEG > 0) avisoTimer = setTimeout(() => { el.hidden = true; }, CONFIG.AVISO_ECRA_SEG * 1000);
 
@@ -1111,7 +1149,7 @@ function avisoVisual(lista, tipo){
     lista.slice(0, 3).forEach(o => {
       try {
         const n = new Notification((tipo === 'nova' ? '🔴 Nova: ' : '🟠 Agravou: ') + (o.natureza || 'Ocorrência'), {
-          body: [o._freg || o.freguesia, o.localidade].filter(Boolean).join(' — '),
+          body: [DISTRITO ? nomeConcelho(o) : '', o._freg || o.freguesia, o.localidade].filter(Boolean).join(' — '),
           tag: 'oc-' + o.id + '-' + tipo, requireInteraction: true });
         n.onclick = () => { window.focus(); selecionar(o.id, true); n.close(); };
       } catch(e){}
@@ -1199,7 +1237,7 @@ function campoMeio(o, k, titulo, icone, valor){
 function itemHtml({o,e}, viz){
   const local = viz
     ? [(CONFIG.VIZINHOS||{})[o.dico] || o.concelho, o.freguesia, o.localidade]
-    : [o._freg || o.freguesia, o.localidade];
+    : (DISTRITO ? [o.freguesia, o.localidade] : [o._freg || o.freguesia, o.localidade]);
   return `
       <button class="oc${viz?' viz':''}${selecionada===o.id?' sel':''}${aPiscar.has(o.id)?' alerta':''}${aPiscar.has(o.id)&&eAgravada(o)&&!eNova(o)?' laranja':''}" style="--c:${e.hex}" data-id="${esc(o.id)}">
         <span class="faixa"></span>
@@ -1224,8 +1262,9 @@ function itemHtml({o,e}, viz){
 function desenhar(){
   const filtro = $('freguesia').value;
   const listaB = ocorrencias
-    .filter(o => !filtro || (o._freg || fregCanonica(o.freguesia)) === filtro)
-    .map(o => ({o, e:infoEstado(o)})).sort(ordenar);
+    .filter(o => !filtro || (DISTRITO ? nomeConcelho(o) : (o._freg || fregCanonica(o.freguesia))) === filtro)
+    .map(o => ({o, e:infoEstado(o)}))
+    .sort((a,b) => DISTRITO ? (nomeConcelho(a.o).localeCompare(nomeConcelho(b.o),'pt') || ordenar(a,b)) : ordenar(a,b));
   const listaV = (mostrarVizinhos && !filtro)
     ? vizinhas.map(o => ({o, e:infoEstado(o)}))
         .sort((a,b) => String((CONFIG.VIZINHOS||{})[a.o.dico]).localeCompare(String((CONFIG.VIZINHOS||{})[b.o.dico]),'pt') || ordenar(a,b))
@@ -1242,9 +1281,16 @@ function desenhar(){
   if (!listaB.length){
     html = !jaRecebeuDados
       ? `<div class="vazio"><strong>A aguardar dados</strong>A lista aparece assim que a fonte responder.</div>`
-      : `<div class="vazio"${listaV.length?' style="margin:12px auto"':''}><strong>Sem ocorrências ativas</strong>${filtro ? 'nesta freguesia.' : 'no concelho de Braga neste momento.'}</div>`;
+      : `<div class="vazio"${listaV.length?' style="margin:12px auto"':''}><strong>Sem ocorrências ativas</strong>${filtro ? (DISTRITO ? 'neste concelho.' : 'nesta freguesia.') : (DISTRITO ? 'no distrito de Braga (fora do concelho) neste momento.' : 'no concelho de Braga neste momento.')}</div>`;
   } else {
-    html = listaB.map(x => itemHtml(x, false)).join('');
+    if (DISTRITO){
+      // separador por concelho
+      const grupos = {};
+      listaB.forEach(x => { const n = nomeConcelho(x.o); (grupos[n] = grupos[n] || []).push(x); });
+      html = Object.entries(grupos).map(([n, xs]) => `<div class="secao">${esc(n)} (${xs.length})</div>` + xs.map(x => itemHtml(x, false)).join('')).join('');
+    } else {
+      html = listaB.map(x => itemHtml(x, false)).join('');
+    }
   }
   if (mostrarVizinhos && !filtro && jaRecebeuDados){
     html += `<div class="secao">Concelhos vizinhos (${listaV.length})</div>`;
