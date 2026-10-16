@@ -401,6 +401,18 @@
   .meteo-now-bar.alert-yellow .meteo-now-alert { background: #fbbf24; }
   .meteo-now-bar.alert-orange .meteo-now-alert { background: #fb923c; }
   .meteo-now-bar.alert-red    .meteo-now-alert { background: #f43f5e; color: #fff; }
+  /* Próximo aviso IPMA previsto (ainda não em vigor): etiqueta discreta só com contorno */
+  .meteo-next-alert { display: none; }
+  .meteo-next-alert.show {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: var(--font-mono); font-size: 8.4px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.4px;
+    padding: 1px 8px; border-radius: 999px;
+    background: transparent; border: 1px dashed currentColor;
+  }
+  .meteo-next-alert.lvl-yellow { color: #fbbf24; }
+  .meteo-next-alert.lvl-orange { color: #fb923c; }
+  .meteo-next-alert.lvl-red    { color: #f43f5e; }
   @keyframes alert-pulse-orange { 50% { box-shadow: 0 0 0 4px rgba(251,146,60,0.25), 0 0 16px rgba(251,146,60,0.45); } }
   @keyframes alert-pulse-red    { 50% { box-shadow: 0 0 0 5px rgba(244,63,94,0.30), 0 0 20px rgba(244,63,94,0.60); } }
 
@@ -554,18 +566,18 @@
   }
   .paged-3 > .empty-state { grid-column: 1 / -1; }
 
-  /* AGENDAMENTO = violeta profundo | INFORMAÇÃO = esmeralda profundo.
+  /* AGENDAMENTO = azul | INFORMAÇÃO = cinzento-azulado | TRÂNSITO = laranja | "A decorrer" = verde.
      As cores da caixa vivem em variáveis para serem fáceis de ajustar. */
   .c2-event-row {
-    --box-a: rgba(109, 40, 217, 0.22);      /* início do degradê (mais vivo)  */
-    --box-b: rgba(76, 29, 149, 0.28);       /* meio                            */
-    --box-c: rgba(46, 16, 101, 0.38);       /* fim (mais escuro)               */
-    --accent: #c4b5fd;                      /* ícone, etiqueta e barra lateral */
-    --accent-bg: rgba(196, 181, 253, 0.18);
-    --accent-bd: rgba(196, 181, 253, 0.55);
+    --box-a: rgba(37, 99, 235, 0.24);       /* início do degradê (mais vivo)  */
+    --box-b: rgba(29, 78, 216, 0.30);       /* meio                            */
+    --box-c: rgba(23, 37, 84, 0.42);        /* fim (mais escuro)               */
+    --accent: #93c5fd;                      /* ícone, etiqueta e barra lateral */
+    --accent-bg: rgba(147, 197, 253, 0.18);
+    --accent-bd: rgba(147, 197, 253, 0.55);
     font-size: calc(var(--fit, 1) * clamp(11.6px, 1.4vh, 15.5px));
     background: linear-gradient(135deg, var(--box-a) 0%, var(--box-b) 55%, var(--box-c) 100%);
-    border: 1px solid rgba(196, 181, 253, 0.30);
+    border: 1px solid rgba(147, 197, 253, 0.30);
     border-left: 0.28em solid var(--accent);
     border-radius: 0.65em;
     padding: 0.7em 0.95em;
@@ -577,13 +589,24 @@
     box-shadow: 0 3px 14px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
   .c2-event-row.tipo-info {
-    --box-a: rgba(4, 120, 87, 0.22);
-    --box-b: rgba(6, 78, 59, 0.28);
-    --box-c: rgba(2, 44, 34, 0.38);
-    --accent: #6ee7b7;
-    --accent-bg: rgba(110, 231, 183, 0.18);
-    --accent-bd: rgba(110, 231, 183, 0.55);
-    border-color: rgba(110, 231, 183, 0.30);
+    --box-a: rgba(100, 116, 139, 0.30);
+    --box-b: rgba(71, 85, 105, 0.36);
+    --box-c: rgba(30, 41, 59, 0.50);
+    --accent: #cbd5e1;
+    --accent-bg: rgba(203, 213, 225, 0.18);
+    --accent-bd: rgba(203, 213, 225, 0.55);
+    border-color: rgba(203, 213, 225, 0.30);
+    border-left-color: var(--accent);
+  }
+  /* Trânsito (cortes de via / condicionamentos): cor de laranja */
+  .c2-event-row.tipo-transito {
+    --box-a: rgba(234, 88, 12, 0.30);
+    --box-b: rgba(194, 65, 12, 0.34);
+    --box-c: rgba(124, 45, 18, 0.44);
+    --accent: #fb923c;
+    --accent-bg: rgba(251, 146, 60, 0.20);
+    --accent-bd: rgba(251, 146, 60, 0.60);
+    border-color: rgba(251, 146, 60, 0.40);
     border-left-color: var(--accent);
   }
   /* Etiquetas "MEIOS / EQUIPA": o cinzento original perdia-se sobre o fundo colorido */
@@ -617,24 +640,24 @@
     gap: 0.4em;
     padding: 0.25em 0.85em;
     border-radius: 999px;
-    background: linear-gradient(135deg, #fbbf24, #f59e0b);
-    border: 1px solid #fde68a;
-    color: #451a03;
+    background: linear-gradient(135deg, #4ade80, #22c55e);
+    border: 1px solid #bbf7d0;
+    color: #052e16;
     font-family: var(--font-mono);
     font-size: 0.68em;
     font-weight: 800;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    box-shadow: 0 0 0.6em rgba(251, 191, 36, 0.55), 0 2px 6px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 0 0.6em rgba(74, 222, 128, 0.55), 0 2px 6px rgba(0, 0, 0, 0.35);
   }
   .c2-live-dot {
     width: 0.55em; height: 0.55em;
     border-radius: 50%;
-    background: #451a03;
+    background: #052e16;
     animation: c2-live-pulse 1.6s infinite;
   }
   @keyframes c2-live-pulse {
-    0%   { box-shadow: 0 0 0 0 rgba(69, 26, 3, 0.55); }
+    0%   { box-shadow: 0 0 0 0 rgba(5, 46, 22, 0.55); }
     70%  { box-shadow: 0 0 0 0.55em rgba(69, 26, 3, 0); }
     100% { box-shadow: 0 0 0 0 rgba(69, 26, 3, 0); }
   }
@@ -1608,6 +1631,7 @@
           <span class="meteo-now-sep"></span>
           <div class="panel-meta meteo-now-stats" id="meteo-head-stats"></div>
           <span class="meteo-now-alert" id="meteo-now-alert"></span>
+          <span class="meteo-next-alert" id="meteo-next-alert"></span>
         </div>
         <div class="c2-panel-body no-scrollbar" id="meteo-body">
           <div class="empty-state">A consultar IPMA & sensores locais…</div>
@@ -1671,7 +1695,8 @@ const SHEET_COMANDO_ID = '1XPVKo_d35yV3k4C1CF82wL43m0ku-wvkcksmcG5CfnQ';
 const SHEET_OPTEL_ID   = '13xtfCezanpDdvjd2cACrK9gIj3Dt12m-YHTnRzVlYOA';
 const GID_AGENDAMENTOS = 0;
 const GID_COMUNICACOES = 1492833476;
-const GID_EPE          = 735100;      // folha "EPE" (Estado de Prontidão Especial) no Comando_dashboard
+const GID_EPE          = 735100;
+const GID_TRANSITO     = 1500700100;  // folha "Trânsito" (cortes de via / condicionamentos) — aparece no quadro Agendamentos & Informações      // folha "EPE" (Estado de Prontidão Especial) no Comando_dashboard
 const GID_CANAIS       = 752912776;   // folha "Canais Radio"
 const GID_VEICULOS     = 171672820;   // folha "Veículos"
 
@@ -1961,6 +1986,7 @@ function vehicleIcon(tipologia){
 /* ==================== GLOBAL STATE ==================== */
 const state = {
   agendamentos: [],
+  transito: [],
   comunicacoes: [],
   canais: [],
   veiculos: [],
@@ -2040,7 +2066,9 @@ function agendamentoAteLabel(row){
   return '';
 }
 function activeAgendamentos(){
-  return sortByStartTime(state.agendamentos.filter(agendamentoVisivel), r => getCol(r, 'Hora'));
+  // Junta os registos da folha Trânsito aos agendamentos/informações (mesmas regras de datas e horas)
+  const transito = state.transito.map(r => getCol(r, 'Tipo') ? r : Object.assign({ Tipo: 'Trânsito' }, r));
+  return sortByStartTime(state.agendamentos.concat(transito).filter(agendamentoVisivel), r => getCol(r, 'Hora'));
 }
 function canalVisivel(row){
   if(!SO_DIA_DE_HOJE) return true;
@@ -2087,6 +2115,8 @@ function formatElapsedSince(dateStr){
 const FIREFIGHTER_ICON = "data:image/webp;base64,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";
 const SVG_CAL_MINI = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
 const SVG_CLOCK_MINI = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>';
+// Sinal de trânsito (triângulo de perigo com barreira) para cortes de via / condicionamentos
+const SVG_TRANSITO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3 2.5 20h19L12 3z"/><line x1="7.5" y1="15.5" x2="16.5" y2="15.5"/><line x1="9.5" y1="13" x2="9.5" y2="18"/><line x1="14.5" y1="13" x2="14.5" y2="18"/></svg>';
 const SVG_INFO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
 
 function renderAgendamentos(){
@@ -2106,7 +2136,8 @@ function renderAgendamentos(){
   }
   body.innerHTML = slice.map(row => {
     const tipo = getCol(row, 'Tipo');
-    const isInfo = /informa/i.test(tipo);
+    const isTransito = /tr[aâ]nsito|corte/i.test(tipo);
+    const isInfo = !isTransito && /informa/i.test(tipo);
     const meios = parseMeios(findCol(row, ['meios']));
     const equipas = splitList(getCol(row, 'Equipas', 'Equipa'));
     const descricao = findCol(row, ['descri']);
@@ -2155,11 +2186,11 @@ function renderAgendamentos(){
       </div>` : '';
 
     return `
-      <div class="c2-event-row ${isInfo ? 'tipo-info' : ''}">
-        <div class="event-icon-box">${isInfo ? SVG_INFO : SVG_CAL_MINI}</div>
+      <div class="c2-event-row ${isTransito ? 'tipo-transito' : (isInfo ? 'tipo-info' : '')}">
+        <div class="event-icon-box">${isTransito ? SVG_TRANSITO : (isInfo ? SVG_INFO : SVG_CAL_MINI)}</div>
         <div class="event-content">
           <div class="event-head">
-            <span class="c2-badge">${escapeHtml(tipo || (isInfo ? 'INFORMAÇÃO' : 'AGENDAMENTO'))}</span>
+            <span class="c2-badge">${escapeHtml(isTransito ? 'Corte de Via / Trânsito' : (tipo || (isInfo ? 'INFORMAÇÃO' : 'AGENDAMENTO')))}</span>
             ${decorrer ? '<span class="c2-live"><span class="c2-live-dot"></span>A decorrer</span>' : ''}
           </div>
           <div class="event-title">${escapeHtml(descricao || '—')}</div>
@@ -2706,6 +2737,38 @@ function renderWeather(){
     alertEl.textContent = '';
   }
 
+  // Próximo aviso previsto nas próximas 24 h (ainda não em vigor): o mais grave; em empate, o que começa primeiro.
+  // Ignora a continuação de um aviso já em vigor (mesmo tipo e mesmo nível).
+  const nextEl = document.getElementById('meteo-next-alert');
+  const limite = new Date(nowTs.getTime() + 24 * 3600 * 1000);
+  const mesmoQueEmVigor = w => avisosEmVigor.some(v =>
+    (v.awarenessTypeName||'') === (w.awarenessTypeName||'') &&
+    (v.awarenessLevelID||'').toLowerCase() === (w.awarenessLevelID||'').toLowerCase());
+  let proximo = null;
+  weatherState.warnings
+    .filter(w => { const ini = new Date(w.startTime); return ini > nowTs && ini <= limite && !mesmoQueEmVigor(w); })
+    .forEach(w => {
+      const l = (w.awarenessLevelID||'').toLowerCase();
+      if(!LVL_ORDER[l]) return;
+      if(!proximo) { proximo = w; return; }
+      const lp = (proximo.awarenessLevelID||'').toLowerCase();
+      if(LVL_ORDER[l] > LVL_ORDER[lp] || (LVL_ORDER[l] === LVL_ORDER[lp] && new Date(w.startTime) < new Date(proximo.startTime))) proximo = w;
+    });
+  nextEl.className = 'meteo-next-alert';
+  if(proximo){
+    const l = proximo.awarenessLevelID.toLowerCase();
+    const ini = new Date(proximo.startTime);
+    const hh = String(ini.getHours()).padStart(2,'0') + ':' + String(ini.getMinutes()).padStart(2,'0');
+    const dia0 = new Date(nowTs); dia0.setHours(0,0,0,0);
+    const diaI = new Date(ini);   diaI.setHours(0,0,0,0);
+    const dif = Math.round((diaI - dia0) / 86400000);
+    const quando = dif === 0 ? `hoje ${hh}` : (dif === 1 ? `amanhã ${hh}` : `${String(ini.getDate()).padStart(2,'0')}/${String(ini.getMonth()+1).padStart(2,'0')} ${hh}`);
+    nextEl.classList.add('show', 'lvl-' + l);
+    nextEl.textContent = `Próximo: ${LVL_NAME[l]} · ${warnTipoPT(proximo.awarenessTypeName)} · ${quando}`;
+  } else {
+    nextEl.textContent = '';
+  }
+
   // Limiares operacionais: rajadas fortes e humidade baixa (favorável a incêndios)
   const gust = c ? Math.round(c.wind_gusts_10m) : null;
   const hum  = c && c.relative_humidity_2m != null ? Math.round(c.relative_humidity_2m) : null;
@@ -2739,9 +2802,7 @@ function renderWeather(){
     </div>
 
     <div class="c2-warnings-list">
-      <div class="c2-warn-grid${weatherState.warnings.length ? '' : ' single'}">
-        ${warningsHtml}
-      </div>
+      <!-- Avisos meteorológicos já aparecem na caixa superior (meteo-now-alert); aqui só Risco de Incêndio e EPE -->
       ${riskHtml}
       ${epeHtml()}
     </div>
@@ -2751,14 +2812,16 @@ function renderWeather(){
 
 /* ==================== DATA SYNC ==================== */
 async function loadSheets(){
-  const [ag, co, ca, ve, ep] = await Promise.all([
+  const [ag, co, ca, ve, ep, tr] = await Promise.all([
     fetchSheet(SHEET_COMANDO_ID, GID_AGENDAMENTOS),
     fetchSheet(SHEET_COMANDO_ID, GID_COMUNICACOES),
     fetchSheet(SHEET_OPTEL_ID, GID_CANAIS),
     fetchSheet(SHEET_OPTEL_ID, GID_VEICULOS),
     fetchSheet(SHEET_COMANDO_ID, GID_EPE),
+    fetchSheet(SHEET_COMANDO_ID, GID_TRANSITO),
   ]);
   if(ep) state.epe = ep;
+  if(tr) state.transito = tr;
   if(ag) state.agendamentos = ag;
   if(co) state.comunicacoes = co;
   if(ca) state.canais = ca;
