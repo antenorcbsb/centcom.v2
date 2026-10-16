@@ -1013,7 +1013,7 @@
     color: #ffffff;
     text-shadow: 0 0 12px var(--ch-accent, transparent), 0 0 3px rgba(255, 255, 255, 0.55);
   }
-  .rs-val { font-size: 2em; white-space: nowrap; display: inline-block; }   /* valor do canal; reduz só se não couber na largura do ecrã (fitRadioValues) */
+  .rs-val { font-size: 2em; white-space: nowrap; display: inline-block; max-width: 100%; overflow-wrap: normal; word-break: keep-all; }   /* valor do canal; reduz só se não couber na largura do ecrã (fitRadioValues) */
 
   /* CAIXA BAIXA (ecrãs pequenos): menos margens e evento mais compacto, para dar espaço aos canais */
   .c2-theatre-card.tight { padding: 0.35em; gap: 0.3em; }
@@ -2227,20 +2227,43 @@ function fitRadioValues(root){
     st.classList.remove('compact');
     if(net.scrollWidth > net.clientWidth + 1) st.classList.add('compact');
   });
-  // valor do canal: tamanho grande (2em); só reduz se não couber na largura do ecrã
+  // valor do canal: tamanho grande (2em); reduz até caber INTEIRO na largura do ecrã.
+  // Nomes compostos (ex.: "MAN 02 CV") podem passar a 2 linhas antes de ficarem muito pequenos;
+  // palavras únicas (ex.: "CLAMEIRAS") nunca são cortadas — encolhem até caber numa linha.
   root.querySelectorAll('.rs-main').forEach(main => {
     const val = main.querySelector('.rs-val');
     if(!val) return;
     val.style.fontSize = '';
     val.style.whiteSpace = 'nowrap';
-    let px = parseFloat(getComputedStyle(val).fontSize);
-    const minPx = px * 0.45;
-    const room = () => main.clientWidth * 0.9;      // folga para o texto não encostar à moldura do ecrã
-    while(val.scrollWidth > room() && px > minPx){
-      px *= 0.94;
+    const basePx = parseFloat(getComputedStyle(val).fontSize);
+    const cs = getComputedStyle(main);
+    const room = Math.max(1, (main.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)) * 0.94);
+    const fitLine = () => {               // maior tamanho numa só linha que cabe na largura
+      let px = basePx;
+      val.style.fontSize = px + 'px';
+      for(let i = 0; i < 40 && val.scrollWidth > room && px > 6; i++){
+        px = Math.max(6, px * Math.min(0.97, room / val.scrollWidth));
+        val.style.fontSize = px + 'px';
+      }
+      return px;
+    };
+    const px1 = fitLine();
+    const words = val.textContent.trim().split(/\s+/);
+    if(px1 >= basePx * 0.7 || words.length < 2) return;
+    // nome composto e muito reduzido: tenta 2 linhas com letra maior (a maior palavra tem de caber)
+    val.style.whiteSpace = 'normal';
+    let px = basePx * 0.8;
+    val.style.fontSize = px + 'px';
+    const lines = () => Math.round(val.offsetHeight / (px * 1.05));
+    const textW = () => {                 // largura real da linha mais comprida do texto
+      const rg = document.createRange(); rg.selectNodeContents(val);
+      return Math.max(0, ...Array.from(rg.getClientRects(), r => r.width));
+    };
+    for(let i = 0; i < 40 && (textW() > room || lines() > 2) && px > px1; i++){
+      px *= 0.95;
       val.style.fontSize = px + 'px';
     }
-    if(val.scrollWidth > room()) val.style.whiteSpace = 'normal';
+    if(px <= px1 || textW() > room || lines() > 2){ val.style.whiteSpace = 'nowrap'; val.style.fontSize = px1 + 'px'; }
   });
 }
 
