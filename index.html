@@ -656,6 +656,38 @@
     background: #052e16;
     animation: c2-live-pulse 1.6s infinite;
   }
+  /* AVISO A PISCAR: verde ao atingir a hora de início, vermelho nos minutos antes da hora de fim */
+  .aviso-inicio { --aviso-cor: 74, 222, 128; }
+  .aviso-fim    { --aviso-cor: 244, 63, 94; }
+  .c2-event-row.aviso-inicio, .c2-event-row.aviso-fim,
+  .c2-theatre-card.aviso-inicio, .c2-theatre-card.aviso-fim {
+    border-color: rgb(var(--aviso-cor));
+    animation: aviso-piscar var(--aviso-ms, 1.2s) ease-in-out infinite;
+    animation-delay: var(--aviso-delay, 0ms);
+  }
+  @keyframes aviso-piscar {
+    0%, 100% { box-shadow: 0 0 0 0.15em rgba(var(--aviso-cor), 0.95), 0 0 1.4em rgba(var(--aviso-cor), 0.75); }
+    50%      { box-shadow: 0 0 0 0.15em rgba(var(--aviso-cor), 0.15), 0 0 0.2em rgba(var(--aviso-cor), 0.05); }
+  }
+  .c2-aviso {
+    display: inline-flex; align-items: center; gap: 0.35em;
+    padding: 0.25em 0.85em;
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 0.68em; font-weight: 800;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    white-space: nowrap; flex-shrink: 0;
+    color: #fff;
+    background: rgb(var(--aviso-cor));
+    animation: aviso-etiqueta var(--aviso-ms, 1.2s) steps(1, end) infinite;
+    animation-delay: var(--aviso-delay, 0ms);
+  }
+  .c2-aviso.inicio { --aviso-cor: 22, 163, 74; }
+  .c2-aviso.fim    { --aviso-cor: 225, 29, 72; }
+  @keyframes aviso-etiqueta { 50% { opacity: 0.2; } }
+  @media (prefers-reduced-motion: reduce) {
+    .aviso-inicio, .aviso-fim, .c2-aviso { animation-duration: 2.4s; }
+  }
   @keyframes c2-live-pulse {
     0%   { box-shadow: 0 0 0 0 rgba(5, 46, 22, 0.55); }
     70%  { box-shadow: 0 0 0 0.55em rgba(69, 26, 3, 0); }
@@ -1751,6 +1783,9 @@ const WEATHER_MS  = 10 * 60000; // meteorologia 10 min
 // Filtros de visualização (todas as linhas do Sheets são SEMPRE lidas, da linha 2 em diante)
 const SO_DIA_DE_HOJE    = true;  // true = mostra só o que é de hoje; false = mostra todas as linhas, seja qual for a data/hora
 const OCULTAR_TERMINADOS = true; // true = esconde o que já passou da hora de fim (só se SO_DIA_DE_HOJE = true)
+const AVISO_INICIO_MIN = 10;     // ao atingir a hora de INÍCIO, a caixa pisca durante X minutos
+const AVISO_FIM_MIN    = 10;     // a caixa pisca nos X minutos ANTES da hora de FIM (depois desaparece)
+const AVISO_PISCAR_MS  = 1200;   // duração de cada ciclo do piscar
 const GRACA_MIN_SEM_FIM = 60;    // sem hora de fim, mantém visível X minutos depois da hora de início
 
 const BRAGA_LAT = 41.5454, BRAGA_LON = -8.4265;
@@ -2059,6 +2094,54 @@ function agendamentoADecorrer(tr){
   return atual >= tr.start && atual <= fim;
 }
 
+// AVISO A PISCAR (Agendamentos, Informações, Trânsito e Plano de Comunicações)
+// Devolve 'inicio' quando a hora de início foi atingida há menos de AVISO_INICIO_MIN minutos,
+// 'fim' quando faltam AVISO_FIM_MIN minutos ou menos para a hora de fim; caso contrário null.
+// Períodos de vários dias: o início conta só no 1.º dia e o fim só no último.
+// "Hora" com um só valor (ex.: "17h") é a hora de fim -> só há aviso de fim.
+function periodoAviso(row, colHora){
+  const tr = parseTimeRange(getCol(row, colHora));
+  if(!tr || tr.start === null || tr.start === undefined) return null;
+  const temIntervalo = tr.end !== null && tr.end !== undefined;
+  const dates = parseDatesPT(getCol(row, 'Data Inicio', 'Data Início', 'Data'));
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const inicio = dates.length ? new Date(Math.min(...dates)) : new Date(hoje);
+  const maxData = dates.length ? new Date(Math.max(...dates)) : null;
+  const fimCol = parseDatePT(getCol(row, 'Data Fim'));
+  const fim = fimCol || (maxData && maxData.getTime() !== inicio.getTime() ? maxData : null) || new Date(inicio);
+  inicio.setHours(0, 0, 0, 0); fim.setHours(0, 0, 0, 0);
+
+  const now = Date.now();
+  const MIN = 60000;
+  const fimMin = temIntervalo ? tr.end : tr.start;
+  const fimDt = new Date(fim); fimDt.setHours(0, fimMin, 0, 0);
+  // intervalo que passa a meia-noite no mesmo dia (ex.: 22:00-02:00) -> o fim é no dia seguinte
+  if(temIntervalo && tr.end < tr.start && fim.getTime() === inicio.getTime()) fimDt.setDate(fimDt.getDate() + 1);
+  if(now <= fimDt.getTime() && now >= fimDt.getTime() - AVISO_FIM_MIN * MIN) return 'fim';
+  if(temIntervalo){
+    const iniDt = new Date(inicio); iniDt.setHours(0, tr.start, 0, 0);
+    if(now >= iniDt.getTime() && now < iniDt.getTime() + AVISO_INICIO_MIN * MIN) return 'inicio';
+  }
+  return null;
+}
+// Mantém o ritmo do piscar contínuo apesar de o quadro ser redesenhado a cada 5 s
+function avisoAttrs(av){
+  if(!av) return { cls: '', style: '' };
+  return { cls: ' aviso-' + av, style: `--aviso-delay:-${Date.now() % AVISO_PISCAR_MS}ms;--aviso-ms:${AVISO_PISCAR_MS}ms;` };
+}
+function avisoBadge(av){
+  if(!av) return '';
+  return av === 'inicio'
+    ? '<span class="c2-aviso inicio">▶ Início</span>'
+    : `<span class="c2-aviso fim">■ Fim em ${AVISO_FIM_MIN} min</span>`;
+}
+// Os registos em aviso passam para o topo da lista, para estarem na página visível
+function avisosPrimeiro(rows, colHora){
+  const com = [], sem = [];
+  rows.forEach(r => (periodoAviso(r, colHora) ? com : sem).push(r));
+  return com.concat(sem);
+}
+
 function agendamentoVisivel(row){
   if(!SO_DIA_DE_HOJE) return true;
   const dates = parseDatesPT(getCol(row, 'Data Inicio', 'Data Início', 'Data'));
@@ -2108,7 +2191,7 @@ function agendamentoAteLabel(row){
 function activeAgendamentos(){
   // Junta os registos da folha Trânsito aos agendamentos/informações (mesmas regras de datas e horas)
   const transito = state.transito.map(r => getCol(r, 'Tipo') ? r : Object.assign({ Tipo: 'Trânsito' }, r));
-  return sortByStartTime(state.agendamentos.concat(transito).filter(agendamentoVisivel), r => getCol(r, 'Hora'));
+  return avisosPrimeiro(sortByStartTime(state.agendamentos.concat(transito).filter(agendamentoVisivel), r => getCol(r, 'Hora')), 'Hora');
 }
 function canalVisivel(row){
   if(!SO_DIA_DE_HOJE) return true;
@@ -2136,7 +2219,7 @@ function canalVisivel(row){
   return isActiveNow(tr);
 }
 function activeCanais(){
-  return sortByStartTime(state.canais.filter(canalVisivel), r => getCol(r, 'Horario'));
+  return avisosPrimeiro(sortByStartTime(state.canais.filter(canalVisivel), r => getCol(r, 'Horario')), 'Horario');
 }
 function activeVeiculosInop(){
   return state.veiculos.filter(row => stripDiacritics(findCol(row, ['estado'])).includes('inop'));
@@ -2187,6 +2270,8 @@ function renderAgendamentos(){
     const hora = getCol(row, 'Hora');
     const decorrer = agendamentoADecorrer(parseTimeRange(hora));
     const ateLabel = agendamentoAteLabel(row);
+    const aviso = periodoAviso(row, 'Hora');
+    const av = avisoAttrs(aviso);
 
     const meiosHtml = meios.map(({ veiculo: m, guarnicao }) => {
       let chip;
@@ -2226,12 +2311,13 @@ function renderAgendamentos(){
       </div>` : '';
 
     return `
-      <div class="c2-event-row ${isTransito ? 'tipo-transito' : (isInfo ? 'tipo-info' : '')}">
+      <div class="c2-event-row ${isTransito ? 'tipo-transito' : (isInfo ? 'tipo-info' : '')}${av.cls}" style="${av.style}">
         <div class="event-icon-box">${isTransito ? SVG_TRANSITO : (isInfo ? SVG_INFO : SVG_CAL_MINI)}</div>
         <div class="event-content">
           <div class="event-head">
             <span class="c2-badge">${escapeHtml(isTransito ? 'Corte de Via / Trânsito' : (tipo || (isInfo ? 'INFORMAÇÃO' : 'AGENDAMENTO')))}</span>
             ${decorrer ? '<span class="c2-live"><span class="c2-live-dot"></span>A decorrer</span>' : ''}
+            ${avisoBadge(aviso)}
           </div>
           <div class="event-title">${escapeHtml(descricao || '—')}</div>
           <div class="event-bottom">${resHtml}${footHtml}</div>
@@ -2365,11 +2451,13 @@ function renderCanais(){
     // A hora (coluna "Horario") continua a decidir quando o teatro aparece/desaparece, mas não é mostrada.
     const nome = getCol(row, 'Evento') || findCol(row, ['evento']) || 'Plano de Comunicações';
     const nomeSz = nome.length > 90 ? 'xs' : (nome.length > 52 ? 'sm' : '');
+    const aviso = periodoAviso(row, 'Horario');
+    const av = avisoAttrs(aviso);
 
     return `
-      <div class="c2-theatre-card">
+      <div class="c2-theatre-card${av.cls}" style="${av.style}">
         <div class="th-top">
-          <span class="th-kicker"><span class="icon-walkie"></span>Teatro Operações</span>
+          <span class="th-kicker"><span class="icon-walkie"></span>Teatro Operações</span>${avisoBadge(aviso)}
           <div class="theatre-name ${nomeSz}">${escapeHtml(nome)}</div>
         </div>
         <div class="channels-grid" style="--cols:${cols}">
