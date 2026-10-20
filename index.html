@@ -8,6 +8,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script>
+document.documentElement.classList.add('auth-locked');
+</script>
+<script>
 /* ==================== QUADRO ÚNICO (?quadro=...) ====================
    index.html                         -> os 4 quadros (como sempre)
    index.html?quadro=agendamentos     -> só Agendamentos & Informações
@@ -1392,21 +1395,27 @@
   .meteo-hourly-grid {
     display: grid; grid-template-columns: repeat(var(--n, 6), minmax(0, 1fr)); gap: 4px;
   }
+  /* Ajuste ao espaço livre: a faixa ocupa o que sobra no quadro (nunca fica cortada)
+     e o conteúdo de cada bloco escala com o tamanho do próprio bloco. */
+  #meteo-body .meteo-hourly { flex: 1 1 0; min-height: 0; overflow: hidden; }
+  #meteo-body .meteo-hourly-grid { flex: 1 1 0; min-height: 0; }
   .hr-tile {
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-    padding: 6px 2px; border-radius: 5px;
+    display: flex; flex-direction: column; align-items: center; justify-content: space-evenly; gap: 0;
+    padding: 2px 2px; border-radius: 5px;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid var(--border-subtle);
-    font-family: var(--font-mono); min-width: 0;
+    font-family: var(--font-mono); min-width: 0; min-height: 0; overflow: hidden;
+    container-type: size;
   }
-  .hr-time { font-size: 10px; font-weight: 700; color: var(--text-secondary); }
-  .hr-time i { font-style: normal; font-size: 7px; color: var(--text-muted); margin-left: 2px; }
-  .hr-ico  { font-size: 19px; line-height: 1.15; }
-  .hr-temp { font-size: 14px; font-weight: 800; color: #f1f5f9; }
-  .hr-rain-v { font-size: 9px; color: var(--text-secondary); white-space: nowrap; }
-  .hr-rain-v small, .hr-wind small { font-size: 7.4px; opacity: 0.85; }
-  .hr-wind { font-size: 9px; color: var(--text-secondary); white-space: nowrap; }
-  .hr-wind svg { width: 8px; height: 8px; }
+  .hr-tile > span { line-height: 1.1; }
+  .hr-time { font-size: clamp(6px, min(12cqh, 14cqw), 15px); font-weight: 700; color: var(--text-secondary); }
+  .hr-time i { font-style: normal; font-size: 0.7em; color: var(--text-muted); margin-left: 2px; }
+  .hr-ico  { font-size: clamp(8px, min(22cqh, 30cqw), 38px); }
+  .hr-temp { font-size: clamp(7px, min(16cqh, 20cqw), 26px); font-weight: 800; color: #f1f5f9; }
+  .hr-rain-v { font-size: clamp(6px, min(10cqh, 10.5cqw), 13px); color: var(--text-secondary); white-space: nowrap; }
+  .hr-rain-v small, .hr-wind small { font-size: 0.82em; opacity: 0.85; }
+  .hr-wind { font-size: clamp(6px, min(10cqh, 10.5cqw), 13px); color: var(--text-secondary); white-space: nowrap; }
+  .hr-wind svg { width: 0.9em; height: 0.9em; }
   .hr-tile.hr-rain { border-color: rgba(56,189,248,0.55); background: rgba(56,189,248,0.08); }
   .hr-tile.hr-rain .hr-rain-v { color: #7dd3fc; font-weight: 700; }
   .hr-tile.hr-warn { border-color: rgba(251,191,36,0.55); background: rgba(251,191,36,0.08); }
@@ -1597,9 +1606,48 @@
   @media (max-width: 1024px) {
     html[data-quadro] header.c2-header { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); justify-items: stretch; }
   }
+
+  /* ==================== LOGIN ==================== */
+  html.auth-locked body > *:not(#auth-overlay) { visibility: hidden; }
+  #auth-overlay { position: fixed; inset: 0; z-index: 9999; display: none; align-items: center; justify-content: center;
+    padding: 16px; background: radial-gradient(ellipse at top, #10203d 0%, var(--bg-base) 70%); font-family: var(--font-ui); }
+  html.auth-locked #auth-overlay { display: flex; }
+  .auth-card { width: 100%; max-width: 360px; background: var(--bg-card); border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg); padding: 28px 26px 22px; box-shadow: 0 20px 60px rgba(0,0,0,.55), 0 0 0 1px var(--border-glow) inset; }
+  .auth-crest { display: flex; justify-content: center; margin-bottom: 12px; }
+  .auth-crest img { height: 84px; width: auto; filter: drop-shadow(0 4px 12px rgba(56,189,248,.25)); }
+  .auth-card h2 { margin: 0; text-align: center; font-size: 18px; font-weight: 800; color: var(--text-primary); letter-spacing: .3px; }
+  .auth-card .auth-sub { margin: 4px 0 20px; text-align: center; font-size: 12px; color: var(--text-secondary); }
+  .auth-card label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px;
+    color: var(--text-muted); margin: 12px 0 6px; }
+  .auth-card input { width: 100%; box-sizing: border-box; padding: 11px 12px; font: inherit; font-size: 15px; color: var(--text-primary);
+    background: var(--bg-surface); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); outline: none; }
+  .auth-card input:focus { border-color: var(--tac-blue); box-shadow: 0 0 0 3px var(--tac-blue-bg); }
+  .auth-card button { width: 100%; margin-top: 20px; padding: 12px; font: inherit; font-size: 15px; font-weight: 800; letter-spacing: .4px;
+    color: #04121f; background: var(--tac-blue); border: 0; border-radius: var(--radius-sm); cursor: pointer; }
+  .auth-card button:disabled { opacity: .6; cursor: wait; }
+  .auth-msg { min-height: 18px; margin-top: 12px; text-align: center; font-size: 12.5px; font-weight: 600; color: var(--tac-red); }
+  .auth-msg.info { color: var(--text-secondary); }
+  .auth-foot { margin-top: 10px; text-align: center; font-size: 10.5px; color: var(--text-muted); }
+  button.session-btn { cursor: pointer; font: inherit; font-family: var(--font-mono); font-size: 8.4px; }
 </style>
 </head>
 <body>
+<!-- ==================== LOGIN (ecrã de acesso) ==================== -->
+<div id="auth-overlay" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+  <form class="auth-card" id="auth-form" autocomplete="on">
+    <div class="auth-crest" id="auth-crest"></div>
+    <h2 id="auth-title">Centro Comunicações</h2>
+    <p class="auth-sub">Acesso reservado a utilizadores autorizados</p>
+    <label for="auth-user">Utilizador</label>
+    <input id="auth-user" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+    <label for="auth-pass">Senha</label>
+    <input id="auth-pass" name="password" type="password" autocomplete="current-password" required>
+    <button type="submit" id="auth-btn">Entrar</button>
+    <div class="auth-msg" id="auth-msg"></div>
+    <div class="auth-foot">Sem acesso? Contacte o administrador da dashboard.</div>
+  </form>
+</div>
 <div class="app-layout">
 
   <!-- COMMAND BAR -->
@@ -1622,6 +1670,7 @@
       <div class="sync-panel">
         <div class="sync-item wait" id="sync-sheets" title="Última leitura com sucesso do Google Sheets"><span class="dot"></span><span class="lbl">Dados</span><span class="val">a ligar…</span></div>
         <div class="sync-item wait" id="sync-meteo" title="Última leitura com sucesso da meteorologia"><span class="dot"></span><span class="lbl">Meteo</span><span class="val">a ligar…</span></div>
+        <button class="sync-item session-btn ok" id="session-btn" type="button" title="Sessão iniciada — tocar duas vezes para sair"><span class="dot"></span><span class="lbl">Sessão</span><span class="val">—</span></button>
         <button class="sync-item wake-btn warn" id="wake-btn" type="button" hidden title="Impede o ecrã de desligar ou entrar em poupança de energia"><span class="dot"></span><span class="lbl">Ecrã</span><span class="val">tocar p/ ativar</span></button>
       </div>
       <div class="tac-clock">
@@ -1838,27 +1887,122 @@ function dedupeHeaders(headers){
   });
 }
 
-async function fetchSheet(id, gid){
-  // 1) endpoint direto de exportação: reflete edições quase de imediato, sem o cache
-  //    interno que o endpoint gviz por vezes mantém durante alguns minutos.
-  try{
-    const res = await fetch(csvUrlExport(id, gid), {cache:'no-store'});
-    if(res.ok){
-      const text = await res.text();
-      if(text && !text.trim().toLowerCase().startsWith('<!doctype')) return parseCSV(text);
-    }
-  }catch(e){ console.warn('Export CSV falhou, a tentar gviz…', id, gid, e); }
+/* ==================== LOGIN / ACESSO AOS DADOS ====================
+   Os Sheets são privados: os dados chegam só através do Apps Script "Acessos Dashboard CENTCOM",
+   e só para quem fez login. Cole abaixo o URL /exec da implementação (app web) desse script. */
+const AUTH_URL = 'COLE_AQUI_O_URL_DO_APPS_SCRIPT/exec';
+const AUTH_KEY = 'centcom_sessao';
 
-  // 2) fallback: endpoint gviz (mais tolerante a CORS, mas por vezes desatualizado)
+const auth = {
+  sessao: null,
+  ler(){ try{ return JSON.parse(localStorage.getItem(AUTH_KEY) || 'null'); }catch(e){ return null; } },
+  guardar(s){ this.sessao = s; try{ localStorage.setItem(AUTH_KEY, JSON.stringify(s)); }catch(e){} },
+  limpar(){ this.sessao = null; try{ localStorage.removeItem(AUTH_KEY); }catch(e){} },
+  valida(s){ return !!(s && s.t && (!s.exp || Date.now() < s.exp)); }
+};
+
+function mostrarLogin(msg, info){
+  document.documentElement.classList.add('auth-locked');
+  const m = document.getElementById('auth-msg');
+  m.textContent = msg || ''; m.classList.toggle('info', !!info);
+  const btn = document.getElementById('auth-btn'); btn.disabled = false; btn.textContent = 'Entrar';
+  setTimeout(() => { const u = document.getElementById('auth-user'); (u.value ? document.getElementById('auth-pass') : u).focus(); }, 50);
+}
+function esconderLogin(){
+  document.documentElement.classList.remove('auth-locked');
+  document.getElementById('auth-pass').value = '';
+  document.getElementById('auth-msg').textContent = '';
+  renderSessao();
+}
+function sessaoTerminada(msg){
+  auth.limpar();
+  mostrarLogin(msg || 'A sessão terminou. Inicie sessão novamente.', true);
+}
+function renderSessao(){
+  const b = document.getElementById('session-btn');
+  if(!b) return;
+  const s = auth.sessao;
+  b.classList.remove('warn');
+  b.querySelector('.val').textContent = s ? (s.nome || '—') : '—';
+  b.title = s ? (s.tipo === 'videowall' ? 'Sessão do videowall (não expira)' :
+    'Sessão expira às ' + new Date(s.exp).toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'})) + ' — tocar duas vezes para sair' : '';
+}
+async function terminarSessao(){
+  const t = auth.sessao && auth.sessao.t;
+  auth.limpar();
+  mostrarLogin('Sessão terminada.', true);
+  if(t) try{ await fetch(AUTH_URL, {method:'POST', body: JSON.stringify({a:'logout', t})}); }catch(e){}
+}
+
+document.getElementById('auth-form').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const u = document.getElementById('auth-user').value.trim();
+  const p = document.getElementById('auth-pass').value;
+  const btn = document.getElementById('auth-btn'), msg = document.getElementById('auth-msg');
+  btn.disabled = true; btn.textContent = 'A verificar…'; msg.textContent = ''; msg.classList.remove('info');
   try{
-    const res = await fetch(csvUrlGviz(id, gid), {cache:'no-store'});
-    if(!res.ok) throw new Error('HTTP ' + res.status);
-    const text = await res.text();
-    return parseCSV(text);
+    const res = await fetch(AUTH_URL, {method:'POST', body: JSON.stringify({a:'login', u, s:p})});
+    const r = await res.json();
+    if(r.ok){
+      auth.guardar({t:r.t, exp:r.exp, nome:r.nome, tipo:r.tipo});
+      esconderLogin();
+      arrancarDashboard();
+      return;
+    }
+    mostrarLogin(r.erro === 'bloqueado' ? `Demasiadas tentativas. Aguarde ${r.min || 15} minutos.` : 'Utilizador ou senha incorretos.');
   }catch(e){
-    console.error('Erro a ler folha', id, gid, e);
-    return null;
+    console.error('[Login]', e);
+    mostrarLogin('Sem ligação ao servidor de acessos. Tente de novo.');
   }
+});
+
+// Brasão do cabeçalho reaproveitado no ecrã de login
+(function(){
+  const img = document.querySelector('.tac-crest img');
+  if(img) document.getElementById('auth-crest').appendChild(img.cloneNode());
+})();
+
+// Botão "Sessão": 1.º toque pede confirmação, 2.º toque (em 4 s) termina a sessão
+(function(){
+  const b = document.getElementById('session-btn');
+  let armado = null;
+  b.addEventListener('click', () => {
+    if(armado){ clearTimeout(armado); armado = null; terminarSessao(); return; }
+    b.classList.add('warn'); b.querySelector('.val').textContent = 'sair? tocar de novo';
+    armado = setTimeout(() => { armado = null; renderSessao(); }, 4000);
+  });
+})();
+
+// Verifica a validade da sessão a cada minuto (as normais expiram ao fim de 12 h)
+setInterval(() => {
+  if(auth.sessao && !auth.valida(auth.sessao)) sessaoTerminada('A sessão expirou (12 h). Inicie sessão novamente.');
+}, 60 * 1000);
+
+// Uma só leitura ao Apps Script entrega todas as folhas; as 6 chamadas de loadSheets() partilham-na
+let _lotePromise = null;
+function fetchLote(){
+  if(_lotePromise) return _lotePromise;
+  _lotePromise = (async () => {
+    const s = auth.sessao;
+    if(!auth.valida(s)) return null;
+    try{
+      const res = await fetch(`${AUTH_URL}?a=dados&t=${encodeURIComponent(s.t)}&_ts=${Date.now()}`, {cache:'no-store'});
+      const r = await res.json();
+      if(r.ok) return r.folhas;
+      if(r.erro === 'sessao') sessaoTerminada();
+      else console.error('[Dados] erro do servidor', r);
+    }catch(e){ console.error('[Dados] falha a contactar o Apps Script', e); }
+    return null;
+  })().finally(() => { setTimeout(() => { _lotePromise = null; }, 0); });
+  return _lotePromise;
+}
+
+async function fetchSheet(id, gid){
+  const folhas = await fetchLote();
+  if(!folhas) return null;
+  const chave = (id === SHEET_COMANDO_ID ? 'comando' : 'optel') + ':' + gid;
+  const csv = folhas[chave];
+  return (csv == null) ? null : parseCSV(csv);
 }
 
 function stripDiacritics(s){
@@ -3009,7 +3153,7 @@ function renderWeather(){
       ${epeHtml()}
     </div>
 
-    ${hourlyHtml()}
+    <!-- Próximas horas removidas a pedido (função hourlyHtml mantida, mas não é mostrada) -->
 
   `;
 }
@@ -3147,6 +3291,18 @@ function rotateAll(){
 }
 
 /* ==================== INIT ==================== */
+// Só arranca depois de haver sessão válida; um novo login apenas volta a ler os dados.
+let _dashboardArrancou = false;
+function arrancarDashboard(){
+  if(_dashboardArrancou){ loadSheets(); return; }
+  _dashboardArrancou = true;
+  iniciarDashboard();
+}
+auth.sessao = auth.ler();
+if(auth.valida(auth.sessao)){ esconderLogin(); arrancarDashboard(); }
+else { auth.limpar(); mostrarLogin(); }
+
+function iniciarDashboard(){
 loadSheets();
 loadWeather();
 setInterval(loadSheets, REFRESH_MS);
@@ -3166,6 +3322,7 @@ setInterval(renderSyncStatus, 1000); renderSyncStatus();
 restartRotateBars();
 document.getElementById('wake-btn').addEventListener('click', requestWakeLock);
 requestWakeLock();
+}
 </script>
 </body>
 </html>
