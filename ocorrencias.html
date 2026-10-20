@@ -579,6 +579,8 @@ const CONFIG = {
   VIZINHOS: { '0301':'Amares', '0302':'Barcelos', '0308':'Guimarães', '0309':'Póvoa de Lanhoso',
               '0312':'Vila Nova de Famalicão', '0313':'Vila Verde' },
   ZOOM_EXTRA: 0.4,              // zoom a mais na vista do concelho (0 = concelho inteiro; 0.2 a 0.8)
+  MOSTRAR_AREAS_QUARTEIS: false,     // true = marca no mapa a área de proximidade de cada quartel (botão "Áreas BSB / BVB")
+  MOSTRAR_LIMITES_FREGUESIAS: false, // true = desenha no mapa as linhas/áreas das freguesias
   MOSTRAR_NOMES_FREGUESIAS: false,   // true = escreve o nome de cada freguesia no mapa
   COR_LIMITE_ZONAS: '#6B7280',       // cinza da linha que separa as áreas do BSB e dos BVB
   CINZA_ZONAS: { BSB: '#9CA3AF', BVB: '#4B5563' },   // cinza claro / cinza escuro das áreas
@@ -1457,7 +1459,10 @@ function selecionar(id, abrirPopup){
 }
 
 /* ---------- Limites e nomes das freguesias (OpenStreetMap) ---------- */
-const camadaFreg = L.layerGroup().addTo(mapa);
+// Os limites das freguesias continuam a ser carregados (servem para aproximar o mapa à freguesia
+// escolhida no filtro), mas NÃO são desenhados: CONFIG.MOSTRAR_LIMITES_FREGUESIAS = false.
+const camadaFreg = L.layerGroup();
+if (CONFIG.MOSTRAR_LIMITES_FREGUESIAS) camadaFreg.addTo(mapa);
 const geoFreg = {};   // nome canónico -> {linhas:[L.polyline], rotulo:L.marker, bounds}
 function nomeCurto(n){
   let t = /^Braga \((.*)\)$/.test(n) ? n.replace(/^Braga \((.*)\)$/,'$1') : n.replace(/\s*\([^)]*\)/g,'');
@@ -1747,8 +1752,8 @@ pedirEcraLigado();
   if (DISTRITO) carregarContorno(); else await carregarContorno();
   if (!DISTRITO){
     carregarFreguesias().then(() => desenhar());
-    aplicarZonas();
-    calcularZonas();
+    if (CONFIG.MOSTRAR_AREAS_QUARTEIS){ aplicarZonas(); calcularZonas(); }
+    else { btnZonas.style.display = 'none'; $('legendaZonas').hidden = true; }
   }
   await carregarDados();
   setInterval(carregarDados, CONFIG.ATUALIZAR_SEG * 1000);
