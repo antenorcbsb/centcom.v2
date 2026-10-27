@@ -1635,7 +1635,32 @@ document.documentElement.classList.add('auth-locked');
   .auth-msg.info { color: var(--text-secondary); }
   .auth-foot { margin-top: 10px; text-align: center; font-size: 10.5px; color: var(--text-muted); }
   button.session-btn { cursor: pointer; font: inherit; font-family: var(--font-mono); font-size: 8.4px; }
+
+  /* ==================== AVISO DIÁRIO: APAGAR LUZES ==================== */
+  #aviso-luzes { position: fixed; left: 50%; top: 50%; transform: translate(-50%, calc(-50% - 30px)); z-index: 9000; width: min(920px, 92vw);
+    display: none; opacity: 0; transition: opacity .35s ease, transform .35s ease; font-family: var(--font-ui);
+    background: linear-gradient(135deg, #1f1604 0%, #2b1d05 100%); border: 2px solid var(--tac-amber); border-radius: var(--radius-lg);
+    box-shadow: 0 24px 70px rgba(0,0,0,.65), 0 0 0 6px var(--tac-amber-bg), 0 0 60px rgba(251,191,36,.35); overflow: hidden; cursor: pointer; }
+  #aviso-luzes.on { display: block; }
+  #aviso-luzes.show { opacity: 1; transform: translate(-50%, -50%); animation: luzesPulse 1.4s ease-in-out infinite; }
+  #aviso-luzes .al-body { display: flex; align-items: center; gap: 22px; padding: 22px 28px; }
+  #aviso-luzes .al-bulb { flex: none; width: 84px; height: 84px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    background: var(--tac-amber-bg); border: 2px solid var(--tac-amber); color: var(--tac-amber); animation: luzesBulb 1s steps(2, jump-none) infinite; }
+  #aviso-luzes .al-bulb svg { width: 50px; height: 50px; }
+  #aviso-luzes .al-tag { font-size: 13px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--tac-amber); }
+  #aviso-luzes .al-title { margin: 4px 0 6px; font-size: clamp(22px, 3.2vw, 38px); font-weight: 800; line-height: 1.15; color: var(--text-primary); }
+  #aviso-luzes .al-title.long { font-size: clamp(16px, 2.3vw, 27px); font-weight: 700; }
+  #aviso-luzes .al-title.xlong { font-size: clamp(14px, 1.8vw, 21px); font-weight: 600; }
+  #aviso-luzes .al-sub { font-size: clamp(14px, 1.7vw, 19px); font-weight: 600; color: #fde68a; }
+  #aviso-luzes .al-count { flex: none; margin-left: auto; font-family: var(--font-mono); font-size: 34px; font-weight: 800; color: var(--tac-amber); }
+  #aviso-luzes .al-bar { height: 7px; background: rgba(255,255,255,.08); }
+  #aviso-luzes .al-bar span { display: block; height: 100%; width: 100%; background: var(--tac-amber); transition: width 1s linear; }
+  @keyframes luzesPulse { 0%,100% { box-shadow: 0 24px 70px rgba(0,0,0,.65), 0 0 0 6px var(--tac-amber-bg), 0 0 40px rgba(251,191,36,.25); }
+                          50% { box-shadow: 0 24px 70px rgba(0,0,0,.65), 0 0 0 10px rgba(251,191,36,.25), 0 0 90px rgba(251,191,36,.6); } }
+  @keyframes luzesBulb { 0% { opacity: 1; } 50% { opacity: .35; } }
+  @media (prefers-reduced-motion: reduce) { #aviso-luzes.show, #aviso-luzes .al-bulb { animation: none; } }
 </style>
+
 </head>
 <body>
 <!-- ==================== LOGIN (ecrã de acesso) ==================== -->
@@ -1652,6 +1677,19 @@ document.documentElement.classList.add('auth-locked');
     <div class="auth-msg" id="auth-msg"></div>
     <div class="auth-foot">Sem acesso? Contacte o administrador da dashboard.</div>
   </form>
+</div>
+<!-- ==================== AVISO DIÁRIO: APAGAR LUZES ==================== -->
+<div id="aviso-luzes" role="alert" aria-live="assertive" title="Tocar para fechar">
+  <div class="al-body">
+    <div class="al-bulb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7c.6.5 1 1.2 1 2V18h6v-1.3c0-.8.4-1.5 1-2A7 7 0 0012 2z"/></svg></div>
+    <div class="al-text">
+      <div class="al-tag" id="al-tag">Aviso ao OPTEL</div>
+      <div class="al-title" id="al-title"></div>
+      <div class="al-sub" id="al-sub"></div>
+    </div>
+    <div class="al-count" id="al-count">60s</div>
+  </div>
+  <div class="al-bar"><span id="al-bar"></span></div>
 </div>
 <div class="app-layout">
 
@@ -1823,6 +1861,7 @@ const GID_AGENDAMENTOS = 0;
 const GID_COMUNICACOES = 1492833476;
 const GID_EPE          = 735100;
 const GID_TRANSITO     = 1500700100;  // folha "Trânsito" (cortes de via / condicionamentos) — aparece no quadro Agendamentos & Informações      // folha "EPE" (Estado de Prontidão Especial) no Comando_dashboard
+const GID_AVISOS       = 1695971430;  // folha "Avisos" (mensagens para o videowall, com duração) do Comando_dashboard
 const GID_CANAIS       = 752912776;   // folha "Canais Radio"
 const GID_VEICULOS     = 171672820;   // folha "Veículos"
 
@@ -2214,6 +2253,7 @@ const state = {
   comunicacoes: [],
   canais: [],
   veiculos: [],
+  avisosFolha: [],
   pages: { agendamentos:0, canais:0, veiculos:0 }
 };
 
@@ -2739,6 +2779,103 @@ function escapeHtml(str){
   return String(str).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
 }
 
+/* ==================== AVISOS NO VIDEOWALL ==================== */
+// 1) Avisos fixos diários (luzes): aparecem todos os dias à hora indicada, durante 1 minuto.
+// 2) Mensagens da folha "Avisos" do Comando_dashboard: aparecem à Data/Hora Início durante os minutos indicados.
+// Toque no aviso para o fechar. Teste: ?testeluzes (08h30) · ?testeluzes=ligar (18h45) · ?testeaviso=Mensagem de teste
+const AVISOS_LUZES = [
+  { id: 'apagar', hora: 8,  minuto: 30, duracaoSeg: 60, tag: 'Aviso ao OPTEL', titulo: 'Apagar as luzes do Parque de Viaturas e do Hall de Entrada', sub: 'Lembrete diário das 08h30' },
+  { id: 'ligar',  hora: 18, minuto: 45, duracaoSeg: 60, tag: 'Aviso ao OPTEL', titulo: 'Ligar as luzes do Parque de Viaturas e do Hall de Entrada',  sub: 'Lembrete diário das 18h45' }
+];
+const AVISO_FOLHA_DURACAO_PADRAO_MIN = 2; // mensagens da folha Avisos sem duração ficam 2 minutos
+let _luzesFechados = {}, _luzesTeste = null, _luzesAtivo = null;
+(function(){
+  const m = location.search.match(/[?&]testeluzes(?:=(\w+))?/);
+  if(m){ const alvo = AVISOS_LUZES.find(a => a.id === (m[1] || 'apagar')) || AVISOS_LUZES[0]; _luzesTeste = { aviso: alvo, inicio: Date.now() }; }
+  const t = location.search.match(/[?&]testeaviso=([^&]+)/);
+  if(t){ _luzesTeste = { inicio: Date.now(), aviso: { id: 'teste-msg', duracaoSeg: 60, tag: 'Aviso', titulo: decodeURIComponent(t[1].replace(/\+/g, ' ')), sub: 'Mensagem de teste' } }; }
+  const el = document.getElementById('aviso-luzes');
+  if(el) el.addEventListener('click', () => { if(_luzesAtivo) _luzesFechados[new Date().toDateString() + ' ' + _luzesAtivo] = true; _luzesTeste = null; esconderAvisoLuzes(); });
+})();
+function esconderAvisoLuzes(){
+  const el = document.getElementById('aviso-luzes'); if(!el || !el.classList.contains('on')) return;
+  _luzesAtivo = null; el.classList.remove('show'); setTimeout(() => el.classList.remove('on'), 380);
+}
+// "dd/mm/aaaa hh:mm" (também aceita hh.mm, hhHmm, segundos e aaaa-mm-dd); devolve ms ou null. Só data -> null
+function parseInicioAviso(str){
+  if(!str) return null;
+  const t = String(str).trim();
+  let m = t.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})[ T,;]+(\d{1,2})\s*[:hH.]\s*(\d{2})/);
+  let d, mo, y, hh, mi;
+  if(m){ d = +m[1]; mo = +m[2]; y = +m[3]; hh = +m[4]; mi = +m[5]; }
+  else {
+    m = t.match(/(\d{4})-(\d{1,2})-(\d{1,2})[ T]+(\d{1,2}):(\d{2})/);
+    if(!m) return null;
+    y = +m[1]; mo = +m[2]; d = +m[3]; hh = +m[4]; mi = +m[5];
+  }
+  if(y < 100) y += 2000;
+  const dt = new Date(y, mo - 1, d, hh, mi, 0, 0);
+  return isNaN(dt) ? null : dt.getTime();
+}
+function hhmm(ms){ const d = new Date(ms); return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'); }
+// Mensagens da folha "Avisos" que estão em vigor neste momento (a mais recente primeiro)
+function avisosDaFolhaAtivos(nowMs){
+  const out = [];
+  (state.avisosFolha || []).forEach(r => {
+    const texto = (findCol(r, ['mensagem']) || '').trim();
+    let dur = parseFloat(String(findCol(r, ['dura']) || '').replace(',', '.'));
+    if(!(dur > 0)) dur = AVISO_FOLHA_DURACAO_PADRAO_MIN; // duração em branco = 2 minutos
+    const ini = parseInicioAviso(findCol(r, ['completo']) || findCol(r, ['data', 'inicio']) || findCol(r, ['inicio']));
+    const est = stripDiacritics(findCol(r, ['estado']) || '');
+    if(!texto || !(dur > 0) || ini === null || /cancel|inativ|desativ/.test(est)) return;
+    const fim = ini + dur * 60000;
+    if(nowMs >= ini && nowMs < fim) out.push({ id: 'msg|' + ini + '|' + texto, ini, fim, texto });
+  });
+  return out.sort((a, b) => b.ini - a.ini);
+}
+function fmtRestante(seg){
+  seg = Math.max(0, Math.ceil(seg));
+  return seg > 60 ? Math.floor(seg / 60) + ':' + String(seg % 60).padStart(2, '0') : seg + 's';
+}
+function checkAvisoLuzes(now){
+  const el = document.getElementById('aviso-luzes'); if(!el) return;
+  const dia = now.toDateString();
+  let aviso = null, restante = -1, total = 60;
+  if(_luzesTeste){
+    aviso = _luzesTeste.aviso; total = aviso.duracaoSeg; restante = total - Math.floor((Date.now() - _luzesTeste.inicio) / 1000);
+    if(restante <= 0) _luzesTeste = null;
+  }
+  if(!aviso || restante <= 0){
+    aviso = null;
+    for(const a of AVISOS_LUZES){
+      if(now.getHours() === a.hora && now.getMinutes() === a.minuto && !_luzesFechados[dia + ' ' + a.id]){
+        aviso = a; total = a.duracaoSeg; restante = total - now.getSeconds(); break;
+      }
+    }
+  }
+  if(!aviso){
+    const msg = avisosDaFolhaAtivos(now.getTime()).find(x => !_luzesFechados[dia + ' ' + x.id]);
+    if(msg){
+      aviso = { id: msg.id, tag: 'Aviso', titulo: msg.texto, sub: 'Das ' + hhmm(msg.ini) + ' às ' + hhmm(msg.fim) };
+      total = (msg.fim - msg.ini) / 1000; restante = (msg.fim - now.getTime()) / 1000;
+    }
+  }
+  if(aviso && restante > 0){
+    if(_luzesAtivo !== aviso.id){
+      _luzesAtivo = aviso.id;
+      document.getElementById('al-tag').textContent = aviso.tag;
+      const ti = document.getElementById('al-title');
+      ti.textContent = aviso.titulo;
+      ti.classList.toggle('long', aviso.titulo.length > 70 && aviso.titulo.length <= 160);
+      ti.classList.toggle('xlong', aviso.titulo.length > 160);
+      document.getElementById('al-sub').textContent = aviso.sub;
+    }
+    if(!el.classList.contains('on')){ el.classList.add('on'); requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('show'))); }
+    document.getElementById('al-count').textContent = fmtRestante(restante);
+    document.getElementById('al-bar').style.width = Math.min(100, restante / total * 100) + '%';
+  } else esconderAvisoLuzes();
+}
+
 /* ==================== CLOCK ==================== */
 function tickClock(){
   const now = new Date();
@@ -2750,6 +2887,7 @@ function tickClock(){
   $('clock-month').textContent = now.toLocaleDateString('pt-PT', {month:'short'}).replace('.', '').toUpperCase();
   $('clock-weekday').textContent = now.toLocaleDateString('pt-PT', {weekday:'long'});
   $('clock-year').textContent = now.getFullYear();
+  checkAvisoLuzes(now);
 }
 setInterval(tickClock, 1000); tickClock();
 
@@ -3164,14 +3302,17 @@ function renderWeather(){
 
 /* ==================== DATA SYNC ==================== */
 async function loadSheets(){
-  const [ag, co, ca, ve, ep, tr] = await Promise.all([
+  const [ag, co, ca, ve, ep, tr, avs] = await Promise.all([
     fetchSheet(SHEET_COMANDO_ID, GID_AGENDAMENTOS),
     fetchSheet(SHEET_COMANDO_ID, GID_COMUNICACOES),
     fetchSheet(SHEET_OPTEL_ID, GID_CANAIS),
     fetchSheet(SHEET_OPTEL_ID, GID_VEICULOS),
     fetchSheet(SHEET_COMANDO_ID, GID_EPE),
     fetchSheet(SHEET_COMANDO_ID, GID_TRANSITO),
+    fetchSheet(SHEET_COMANDO_ID, GID_AVISOS),
   ]);
+  if(avs) state.avisosFolha = avs;
+  else if(avs === null && !window._avisosAvisado){ window._avisosAvisado = true; console.warn('[Avisos] a folha Avisos (gid ' + GID_AVISOS + ') não veio do Apps Script de acessos — acrescentar esse gid à lista de folhas do Comando_dashboard.'); }
   if(ep) state.epe = ep;
   if(tr) state.transito = tr;
   if(ag) state.agendamentos = ag;
