@@ -2812,7 +2812,7 @@ const ICONES_AVISO = {
 const AVISO_FOLHA_DURACAO_PADRAO_MIN = 2; // mensagens da folha Avisos sem duração ficam 2 minutos
 let _luzesFechados = {}, _luzesTeste = null, _luzesAtivo = null;
 (function(){
-  const m = location.search.match(/[?&]testeluzes(?:=(\w+))?/);
+  const m = location.search.match(/[?&]testeluzes(?:=([\w-]+))?/);
   if(m){ const alvo = AVISOS_LUZES.find(a => a.id === (m[1] || 'apagar')) || AVISOS_LUZES[0]; _luzesTeste = { aviso: alvo, inicio: Date.now() }; }
   const t = location.search.match(/[?&]testeaviso=([^&]+)/);
   if(t){ _luzesTeste = { inicio: Date.now(), aviso: { id: 'teste-msg', duracaoSeg: 60, tag: 'Aviso', titulo: decodeURIComponent(t[1].replace(/\+/g, ' ')), sub: 'Mensagem de teste' } }; }
