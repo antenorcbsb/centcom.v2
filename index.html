@@ -1678,7 +1678,7 @@ document.documentElement.classList.add('auth-locked');
     <div class="auth-foot">Sem acesso? Contacte o administrador da dashboard.</div>
   </form>
 </div>
-<!-- ==================== AVISO DIÁRIO: APAGAR LUZES ==================== -->
+<!-- ==================== AVISOS DIÁRIOS: LUZES E TOQUES ==================== -->
 <div id="aviso-luzes" role="alert" aria-live="assertive" title="Tocar para fechar">
   <div class="al-body">
     <div class="al-bulb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7c.6.5 1 1.2 1 2V18h6v-1.3c0-.8.4-1.5 1-2A7 7 0 0012 2z"/></svg></div>
@@ -2780,13 +2780,35 @@ function escapeHtml(str){
 }
 
 /* ==================== AVISOS NO VIDEOWALL ==================== */
-// 1) Avisos fixos diários (luzes): aparecem todos os dias à hora indicada, durante 1 minuto.
+// 1) Avisos fixos diários (luzes e toques): aparecem todos os dias à hora indicada, durante 1 minuto.
+//    epoca: 'inverno' / 'verao' -> só nesse horário (Verão = hora legal de verão, último domingo de março a último domingo de outubro).
+//    icone: 'luz' (lâmpada) ou 'toque' (sino).
 // 2) Mensagens da folha "Avisos" do Comando_dashboard: aparecem à Data/Hora Início durante os minutos indicados.
-// Toque no aviso para o fechar. Teste: ?testeluzes (08h30) · ?testeluzes=ligar (18h45) · ?testeaviso=Mensagem de teste
+// Toque no aviso para o fechar. Teste: ?testeluzes (08h30) · ?testeluzes=ligar (18h00) · ?testeluzes=<id> (ex.: alvorada, silencio-inv) · ?testeaviso=Mensagem de teste
 const AVISOS_LUZES = [
-  { id: 'apagar', hora: 8,  minuto: 30, duracaoSeg: 60, tag: 'Aviso ao OPTEL', titulo: 'Apagar as luzes do Parque de Viaturas e do Hall de Entrada', sub: 'Lembrete diário das 08h30' },
-  { id: 'ligar',  hora: 18, minuto: 45, duracaoSeg: 60, tag: 'Aviso ao OPTEL', titulo: 'Ligar as luzes do Parque de Viaturas e do Hall de Entrada',  sub: 'Lembrete diário das 18h45' }
+  { id: 'alvorada',        hora: 7,  minuto: 0,  duracaoSeg: 60, icone: 'toque', tag: 'Toque', titulo: 'Toque de Alvorada',  sub: 'Diário · 07h00' },
+  { id: 'formatura-0730',  hora: 7,  minuto: 30, duracaoSeg: 60, icone: 'toque', tag: 'Toque', titulo: 'Toque de Formatura', sub: 'Diário · 07h30' },
+  { id: 'formatura-0800',  hora: 8,  minuto: 0,  duracaoSeg: 60, icone: 'toque', tag: 'Toque', titulo: 'Toque de Formatura', sub: 'Diário · 08h00' },
+  { id: 'apagar',          hora: 8,  minuto: 30, duracaoSeg: 60, icone: 'luz',   tag: 'Aviso ao OPTEL', titulo: 'Apagar as luzes do Parque de Viaturas e do Hall de Entrada', sub: 'Lembrete diário das 08h30' },
+  { id: 'formatura-0900',  hora: 9,  minuto: 0,  duracaoSeg: 60, icone: 'toque', tag: 'Toque', titulo: 'Toque de Formatura', sub: 'Diário · 09h00' },
+  { id: 'instrucao',       hora: 14, minuto: 0,  duracaoSeg: 60, icone: 'toque', tag: 'Toque', titulo: 'Toque de Instrução', sub: 'Diário · 14h00' },
+  { id: 'ligar',           hora: 18, minuto: 0,  duracaoSeg: 60, icone: 'luz',   tag: 'Aviso ao OPTEL', titulo: 'Ligar as luzes do Parque de Viaturas e do Hall de Entrada',  sub: 'Lembrete diário das 18h00' },
+  { id: 'formatura-2000',  hora: 20, minuto: 0,  duracaoSeg: 60, icone: 'toque', tag: 'Toque', titulo: 'Toque de Formatura', sub: 'Diário · 20h00' },
+  { id: 'formatura-inv',   hora: 21, minuto: 30, duracaoSeg: 60, icone: 'toque', tag: 'Toque', titulo: 'Toque de Formatura', sub: 'Horário de Inverno · 21h30', epoca: 'inverno' },
+  { id: 'formatura-ver',   hora: 22, minuto: 0,  duracaoSeg: 60, icone: 'toque', tag: 'Toque', titulo: 'Toque de Formatura', sub: 'Horário de Verão · 22h00',   epoca: 'verao' },
+  { id: 'silencio-inv',    hora: 22, minuto: 0,  duracaoSeg: 60, icone: 'toque', tag: 'Toque', titulo: 'Toque de Silêncio',  sub: 'Horário de Inverno · 22h00', epoca: 'inverno' },
+  { id: 'silencio-ver',    hora: 22, minuto: 30, duracaoSeg: 60, icone: 'toque', tag: 'Toque', titulo: 'Toque de Silêncio',  sub: 'Horário de Verão · 22h30',   epoca: 'verao' }
 ];
+// Verão = hora legal de verão em vigor (o fuso do computador está adiantado em relação ao inverno)
+function epocaAtual(d){
+  const y = d.getFullYear();
+  const offInv = Math.max(new Date(y, 0, 1).getTimezoneOffset(), new Date(y, 6, 1).getTimezoneOffset());
+  return d.getTimezoneOffset() < offInv ? 'verao' : 'inverno';
+}
+const ICONES_AVISO = {
+  luz:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7c.6.5 1 1.2 1 2V18h6v-1.3c0-.8.4-1.5 1-2A7 7 0 0012 2z"/></svg>',
+  toque: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 003.4 0"/><path d="M2 8c0-2.2.7-4.3 2-6M22 8a10 10 0 00-2-6"/></svg>'
+};
 const AVISO_FOLHA_DURACAO_PADRAO_MIN = 2; // mensagens da folha Avisos sem duração ficam 2 minutos
 let _luzesFechados = {}, _luzesTeste = null, _luzesAtivo = null;
 (function(){
@@ -2848,6 +2870,7 @@ function checkAvisoLuzes(now){
   if(!aviso || restante <= 0){
     aviso = null;
     for(const a of AVISOS_LUZES){
+      if(a.epoca && a.epoca !== epocaAtual(now)) continue;
       if(now.getHours() === a.hora && now.getMinutes() === a.minuto && !_luzesFechados[dia + ' ' + a.id]){
         aviso = a; total = a.duracaoSeg; restante = total - now.getSeconds(); break;
       }
@@ -2869,6 +2892,8 @@ function checkAvisoLuzes(now){
       ti.classList.toggle('long', aviso.titulo.length > 70 && aviso.titulo.length <= 160);
       ti.classList.toggle('xlong', aviso.titulo.length > 160);
       document.getElementById('al-sub').textContent = aviso.sub;
+      const bulb = el.querySelector('.al-bulb');
+      if(bulb) bulb.innerHTML = ICONES_AVISO[aviso.icone] || ICONES_AVISO.luz;
     }
     if(!el.classList.contains('on')){ el.classList.add('on'); requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('show'))); }
     document.getElementById('al-count').textContent = fmtRestante(restante);
