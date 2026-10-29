@@ -2816,21 +2816,22 @@ function escapeHtml(str){
 // 1) Avisos fixos diários (luzes e toques): aparecem todos os dias à hora indicada, durante 1 minuto.
 //    epoca: 'inverno' / 'verao' -> só nesse horário (Verão = hora legal de verão, último domingo de março a último domingo de outubro).
 //    icone: 'luz' (lâmpada) ou 'toque' (sino).
+//    antecedenciaSeg: o aviso começa estes segundos antes da hora (toques: 1 minuto antes) e fica até ao fim do minuto do toque.
 // 2) Mensagens da folha "Avisos" do Comando_dashboard: aparecem à Data/Hora Início durante os minutos indicados.
-// Toque no aviso para o fechar. Teste: ?testeluzes (08h30) · ?testeluzes=ligar (18h00) · ?testeluzes=<id> (ex.: alvorada, silencio-inv) · ?testeaviso=Mensagem de teste
+// Toque no aviso para o fechar. Teste: ?testeluzes (08h30) · ?testeluzes=ligar (17h15) · ?testeluzes=<id> (ex.: alvorada, silencio-inv) · ?testeaviso=Mensagem de teste
 const AVISOS_LUZES = [
-  { id: 'alvorada',        hora: 7,  minuto: 0,  duracaoSeg: 60, icone: 'toque', tag: 'Toque', titulo: 'Toque de Alvorada',  sub: 'Diário · 07h00' },
-  { id: 'formatura-0730',  hora: 7,  minuto: 30, duracaoSeg: 60, icone: 'toque', tag: 'Toque', titulo: 'Toque de Formatura', sub: 'Diário · 07h30' },
-  { id: 'formatura-0800',  hora: 8,  minuto: 0,  duracaoSeg: 60, icone: 'toque', tag: 'Toque', titulo: 'Toque de Formatura', sub: 'Diário · 08h00' },
+  { id: 'alvorada',        hora: 7,  minuto: 0,  duracaoSeg: 60, icone: 'toque', antecedenciaSeg: 60, tag: 'Toque', titulo: 'Toque de Alvorada',  sub: 'Diário · 07h00' },
+  { id: 'formatura-0730',  hora: 7,  minuto: 30, duracaoSeg: 60, icone: 'toque', antecedenciaSeg: 60, tag: 'Toque', titulo: 'Toque de Formatura', sub: 'Diário · 07h30' },
+  { id: 'formatura-0800',  hora: 8,  minuto: 0,  duracaoSeg: 60, icone: 'toque', antecedenciaSeg: 60, tag: 'Toque', titulo: 'Toque de Formatura', sub: 'Diário · 08h00' },
   { id: 'apagar',          hora: 8,  minuto: 30, duracaoSeg: 60, icone: 'luz',   tag: 'Aviso ao OPTEL', titulo: 'Apagar as luzes do Parque de Viaturas e do Hall de Entrada', sub: 'Lembrete diário das 08h30' },
-  { id: 'formatura-0900',  hora: 9,  minuto: 0,  duracaoSeg: 60, icone: 'toque', tag: 'Toque', titulo: 'Toque de Formatura', sub: 'Diário · 09h00' },
-  { id: 'instrucao',       hora: 14, minuto: 0,  duracaoSeg: 60, icone: 'toque', tag: 'Toque', titulo: 'Toque de Instrução', sub: 'Diário · 14h00' },
-  { id: 'ligar',           hora: 18, minuto: 0,  duracaoSeg: 60, icone: 'luz',   tag: 'Aviso ao OPTEL', titulo: 'Ligar as luzes do Parque de Viaturas e do Hall de Entrada',  sub: 'Lembrete diário das 18h00' },
-  { id: 'formatura-2000',  hora: 20, minuto: 0,  duracaoSeg: 60, icone: 'toque', tag: 'Toque', titulo: 'Toque de Formatura', sub: 'Diário · 20h00' },
-  { id: 'formatura-inv',   hora: 21, minuto: 30, duracaoSeg: 60, icone: 'toque', tag: 'Toque', titulo: 'Toque de Formatura', sub: 'Horário de Inverno · 21h30', epoca: 'inverno' },
-  { id: 'formatura-ver',   hora: 22, minuto: 0,  duracaoSeg: 60, icone: 'toque', tag: 'Toque', titulo: 'Toque de Formatura', sub: 'Horário de Verão · 22h00',   epoca: 'verao' },
-  { id: 'silencio-inv',    hora: 22, minuto: 0,  duracaoSeg: 60, icone: 'toque', tag: 'Toque', titulo: 'Toque de Silêncio',  sub: 'Horário de Inverno · 22h00', epoca: 'inverno' },
-  { id: 'silencio-ver',    hora: 22, minuto: 30, duracaoSeg: 60, icone: 'toque', tag: 'Toque', titulo: 'Toque de Silêncio',  sub: 'Horário de Verão · 22h30',   epoca: 'verao' }
+  { id: 'formatura-0900',  hora: 9,  minuto: 0,  duracaoSeg: 60, icone: 'toque', antecedenciaSeg: 60, tag: 'Toque', titulo: 'Toque de Formatura', sub: 'Diário · 09h00' },
+  { id: 'instrucao',       hora: 14, minuto: 0,  duracaoSeg: 60, icone: 'toque', antecedenciaSeg: 60, tag: 'Toque', titulo: 'Toque de Instrução', sub: 'Diário · 14h00' },
+  { id: 'ligar',           hora: 17, minuto: 15, duracaoSeg: 60, icone: 'luz',   tag: 'Aviso ao OPTEL', titulo: 'Ligar as luzes do Parque de Viaturas e do Hall de Entrada',  sub: 'Lembrete diário das 17h15' },
+  { id: 'formatura-2000',  hora: 20, minuto: 0,  duracaoSeg: 60, icone: 'toque', antecedenciaSeg: 60, tag: 'Toque', titulo: 'Toque de Formatura', sub: 'Diário · 20h00' },
+  { id: 'formatura-inv',   hora: 21, minuto: 30, duracaoSeg: 60, icone: 'toque', antecedenciaSeg: 60, tag: 'Toque', titulo: 'Toque de Formatura', sub: 'Horário de Inverno · 21h30', epoca: 'inverno' },
+  { id: 'formatura-ver',   hora: 22, minuto: 0,  duracaoSeg: 60, icone: 'toque', antecedenciaSeg: 60, tag: 'Toque', titulo: 'Toque de Formatura', sub: 'Horário de Verão · 22h00',   epoca: 'verao' },
+  { id: 'silencio-inv',    hora: 22, minuto: 0,  duracaoSeg: 60, icone: 'toque', antecedenciaSeg: 60, tag: 'Toque', titulo: 'Toque de Silêncio',  sub: 'Horário de Inverno · 22h00', epoca: 'inverno' },
+  { id: 'silencio-ver',    hora: 22, minuto: 30, duracaoSeg: 60, icone: 'toque', antecedenciaSeg: 60, tag: 'Toque', titulo: 'Toque de Silêncio',  sub: 'Horário de Verão · 22h30',   epoca: 'verao' }
 ];
 // Verão = hora legal de verão em vigor (o fuso do computador está adiantado em relação ao inverno)
 function epocaAtual(d){
@@ -2850,7 +2851,7 @@ let _luzesFechados = {}, _luzesTeste = null, _luzesAtivo = null;
   const t = location.search.match(/[?&]testeaviso=([^&]+)/);
   if(t){ _luzesTeste = { inicio: Date.now(), aviso: { id: 'teste-msg', duracaoSeg: 60, tag: 'Aviso', titulo: decodeURIComponent(t[1].replace(/\+/g, ' ')), sub: 'Mensagem de teste' } }; }
   const el = document.getElementById('aviso-luzes');
-  if(el && document.documentElement.hasAttribute('data-sem-titulo')){ el.classList.add('flutuante'); document.body.appendChild(el); }
+  if(el){ el.classList.add('flutuante'); document.body.appendChild(el); } // aviso sempre ao centro do ecrã
   if(el) el.addEventListener('click', () => { if(_luzesAtivo) _luzesFechados[new Date().toDateString() + ' ' + _luzesAtivo] = true; _luzesTeste = null; esconderAvisoLuzes(); });
 })();
 // No cabeçalho: reduz a letra até o título caber; se nem assim couber, o texto passa a deslizar.
@@ -2922,8 +2923,11 @@ function checkAvisoLuzes(now){
     aviso = null;
     for(const a of AVISOS_LUZES){
       if(a.epoca && a.epoca !== epocaAtual(now)) continue;
-      if(now.getHours() === a.hora && now.getMinutes() === a.minuto && !_luzesFechados[dia + ' ' + a.id]){
-        aviso = a; total = a.duracaoSeg; restante = total - now.getSeconds(); break;
+      const segAgora = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+      const ini = a.hora * 3600 + a.minuto * 60 - (a.antecedenciaSeg || 0);
+      const fim = a.hora * 3600 + a.minuto * 60 + a.duracaoSeg;
+      if(segAgora >= ini && segAgora < fim && !_luzesFechados[dia + ' ' + a.id]){
+        aviso = a; total = fim - ini; restante = fim - segAgora; break;
       }
     }
   }
