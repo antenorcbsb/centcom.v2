@@ -1640,6 +1640,10 @@ document.documentElement.classList.add('auth-locked');
      Por omissão o aviso aparece no cabeçalho, à direita do símbolo do Batalhão, a piscar.
      Se o cabeçalho estiver escondido (?titulo=0) passa a flutuar no centro do ecrã (.flutuante). */
   .brand-group { min-width: 0; }
+  #aviso-luzes .al-count { display: none !important; } /* sem contagem decrescente */
+  #aviso-luzes .al-sub, #aviso-luzes .al-bar { display: none !important; } /* nada por baixo do título */
+  #aviso-luzes.flutuante .al-text { flex: 1 1 auto; min-width: 0; text-align: center; padding-right: 106px; } /* texto centrado no aviso (106px = largura do ícone + espaço) */
+  #aviso-luzes.flutuante .al-title { margin-bottom: 0; }
   .brand-group:has(#aviso-luzes.on) { justify-self: stretch; }
   #aviso-luzes:not(.flutuante) { display: none; position: relative; flex: 1 1 auto; max-width: 640px; min-width: 0; height: 46px; box-sizing: border-box;
     border: 2px solid var(--tac-amber); border-radius: 10px; overflow: hidden; cursor: pointer; font-family: var(--font-ui);
@@ -2816,23 +2820,63 @@ function escapeHtml(str){
 // 1) Avisos fixos diários (luzes e toques): aparecem todos os dias à hora indicada, durante 1 minuto.
 //    epoca: 'inverno' / 'verao' -> só nesse horário (Verão = hora legal de verão, último domingo de março a último domingo de outubro).
 //    icone: 'luz' (lâmpada) ou 'toque' (sino).
+//    sol: 'nascer' / 'por' -> a hora é calculada todos os dias pelo nascer / pôr do sol em Braga (hora/minuto ficam só como reserva).
+//         solAjusteMin: minutos a somar (+) ou tirar (-) à hora do sol (ex.: -15 = 15 minutos antes do pôr do sol).
 //    antecedenciaSeg: o aviso começa estes segundos antes da hora (toques: 1 minuto antes) e fica até ao fim do minuto do toque.
 // 2) Mensagens da folha "Avisos" do Comando_dashboard: aparecem à Data/Hora Início durante os minutos indicados.
-// Toque no aviso para o fechar. Teste: ?testeluzes (08h30) · ?testeluzes=ligar (17h15) · ?testeluzes=<id> (ex.: alvorada, silencio-inv) · ?testeaviso=Mensagem de teste
+// Toque no aviso para o fechar. Teste: ?testeluzes (nascer do sol) · ?testeluzes=ligar (pôr do sol) · ?testeluzes=<id> (ex.: alvorada, silencio-inv) · ?testeaviso=Mensagem de teste
 const AVISOS_LUZES = [
   { id: 'alvorada',        hora: 7,  minuto: 0,  duracaoSeg: 60, icone: 'toque', antecedenciaSeg: 60, tag: 'Toque', titulo: 'Toque de Alvorada',  sub: 'Diário · 07h00' },
   { id: 'formatura-0730',  hora: 7,  minuto: 30, duracaoSeg: 60, icone: 'toque', antecedenciaSeg: 60, tag: 'Toque', titulo: 'Toque de Formatura', sub: 'Diário · 07h30' },
   { id: 'formatura-0800',  hora: 8,  minuto: 0,  duracaoSeg: 60, icone: 'toque', antecedenciaSeg: 60, tag: 'Toque', titulo: 'Toque de Formatura', sub: 'Diário · 08h00' },
-  { id: 'apagar',          hora: 8,  minuto: 30, duracaoSeg: 60, icone: 'luz',   tag: 'Aviso ao OPTEL', titulo: 'Apagar as luzes do Parque de Viaturas e do Hall de Entrada', sub: 'Lembrete diário das 08h30' },
+  { id: 'apagar',          hora: 8,  minuto: 30, duracaoSeg: 60, icone: 'luz',   sol: 'nascer', solAjusteMin: 60, tag: 'Aviso ao OPTEL', titulo: 'Apagar as luzes do Parque de Viaturas e do Hall de Entrada', sub: 'Nascer do sol' },
   { id: 'formatura-0900',  hora: 9,  minuto: 0,  duracaoSeg: 60, icone: 'toque', antecedenciaSeg: 60, tag: 'Toque', titulo: 'Toque de Formatura', sub: 'Diário · 09h00' },
   { id: 'instrucao',       hora: 14, minuto: 0,  duracaoSeg: 60, icone: 'toque', antecedenciaSeg: 60, tag: 'Toque', titulo: 'Toque de Instrução', sub: 'Diário · 14h00' },
-  { id: 'ligar',           hora: 17, minuto: 15, duracaoSeg: 60, icone: 'luz',   tag: 'Aviso ao OPTEL', titulo: 'Ligar as luzes do Parque de Viaturas e do Hall de Entrada',  sub: 'Lembrete diário das 17h15' },
+  { id: 'ligar',           hora: 17, minuto: 15, duracaoSeg: 60, icone: 'luz',   sol: 'por',    solAjusteMin: -60, tag: 'Aviso ao OPTEL', titulo: 'Ligar as luzes do Parque de Viaturas e do Hall de Entrada',  sub: 'Pôr do sol' },
   { id: 'formatura-2000',  hora: 20, minuto: 0,  duracaoSeg: 60, icone: 'toque', antecedenciaSeg: 60, tag: 'Toque', titulo: 'Toque de Formatura', sub: 'Diário · 20h00' },
   { id: 'formatura-inv',   hora: 21, minuto: 30, duracaoSeg: 60, icone: 'toque', antecedenciaSeg: 60, tag: 'Toque', titulo: 'Toque de Formatura', sub: 'Horário de Inverno · 21h30', epoca: 'inverno' },
   { id: 'formatura-ver',   hora: 22, minuto: 0,  duracaoSeg: 60, icone: 'toque', antecedenciaSeg: 60, tag: 'Toque', titulo: 'Toque de Formatura', sub: 'Horário de Verão · 22h00',   epoca: 'verao' },
   { id: 'silencio-inv',    hora: 22, minuto: 0,  duracaoSeg: 60, icone: 'toque', antecedenciaSeg: 60, tag: 'Toque', titulo: 'Toque de Silêncio',  sub: 'Horário de Inverno · 22h00', epoca: 'inverno' },
   { id: 'silencio-ver',    hora: 22, minuto: 30, duracaoSeg: 60, icone: 'toque', antecedenciaSeg: 60, tag: 'Toque', titulo: 'Toque de Silêncio',  sub: 'Horário de Verão · 22h30',   epoca: 'verao' }
 ];
+// Nascer e pôr do sol em Braga, calculados na página (sem internet). Precisão de ±1–2 minutos.
+const SOL_LAT = 41.5454, SOL_LON = -8.4265;
+let _solCache = { dia: null, v: null };
+function horasSol(d){
+  const dia = d.toDateString();
+  if(_solCache.dia === dia) return _solCache.v;
+  const rad = Math.PI / 180;
+  const jd = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 12) / 86400000 + 2440587.5;
+  const n = Math.round(jd - 2451545.0 + 0.0008);
+  const js = n - SOL_LON / 360;
+  const M = (357.5291 + 0.98560028 * js) % 360;
+  const C = 1.9148 * Math.sin(M * rad) + 0.02 * Math.sin(2 * M * rad) + 0.0003 * Math.sin(3 * M * rad);
+  const L = (M + C + 180 + 102.9372) % 360;
+  const jt = 2451545.0 + js + 0.0053 * Math.sin(M * rad) - 0.0069 * Math.sin(2 * L * rad);
+  const dec = Math.asin(Math.sin(L * rad) * Math.sin(23.4397 * rad));
+  const cosW = (Math.sin(-0.833 * rad) - Math.sin(SOL_LAT * rad) * Math.sin(dec)) / (Math.cos(SOL_LAT * rad) * Math.cos(dec));
+  const w = Math.acos(Math.max(-1, Math.min(1, cosW))) / rad;
+  const paraData = j => new Date(Math.round(((j - 2440587.5) * 86400000) / 60000) * 60000);
+  const v = { nascer: paraData(jt - w / 360), por: paraData(jt + w / 360) };
+  _solCache = { dia, v };
+  return v;
+}
+// Atualiza hora/minuto/sub dos avisos ligados ao sol para o dia indicado
+function aplicarHoraSol(a, d){
+  if(!a || !a.sol) return a;
+  const base = horasSol(d)[a.sol];
+  if(!base || isNaN(base)) return a;
+  const h = new Date(base.getTime() + (a.solAjusteMin || 0) * 60000);
+  a.hora = h.getHours(); a.minuto = h.getMinutes();
+  const hm = String(a.hora).padStart(2, '0') + 'h' + String(a.minuto).padStart(2, '0');
+  const evento = a.sol === 'nascer' ? 'nascer do sol' : 'pôr do sol';
+  const absMin = Math.abs(a.solAjusteMin || 0);
+  const dur = absMin % 60 === 0 ? (absMin / 60) + ' h' : absMin + ' min';
+  const txt = !a.solAjusteMin ? evento.charAt(0).toUpperCase() + evento.slice(1)
+    : dur + (a.solAjusteMin > 0 ? ' depois do ' : ' antes do ') + evento;
+  a.sub = txt + ' · ' + hm;
+  return a;
+}
 // Verão = hora legal de verão em vigor (o fuso do computador está adiantado em relação ao inverno)
 function epocaAtual(d){
   const y = d.getFullYear();
@@ -2847,7 +2891,7 @@ const AVISO_FOLHA_DURACAO_PADRAO_MIN = 2; // mensagens da folha Avisos sem dura�
 let _luzesFechados = {}, _luzesTeste = null, _luzesAtivo = null;
 (function(){
   const m = location.search.match(/[?&]testeluzes(?:=([\w-]+))?/);
-  if(m){ const alvo = AVISOS_LUZES.find(a => a.id === (m[1] || 'apagar')) || AVISOS_LUZES[0]; _luzesTeste = { aviso: alvo, inicio: Date.now() }; }
+  if(m){ const alvo = AVISOS_LUZES.find(a => a.id === (m[1] || 'apagar')) || AVISOS_LUZES[0]; aplicarHoraSol(alvo, new Date()); _luzesTeste = { aviso: alvo, inicio: Date.now() }; }
   const t = location.search.match(/[?&]testeaviso=([^&]+)/);
   if(t){ _luzesTeste = { inicio: Date.now(), aviso: { id: 'teste-msg', duracaoSeg: 60, tag: 'Aviso', titulo: decodeURIComponent(t[1].replace(/\+/g, ' ')), sub: 'Mensagem de teste' } }; }
   const el = document.getElementById('aviso-luzes');
@@ -2923,6 +2967,7 @@ function checkAvisoLuzes(now){
     aviso = null;
     for(const a of AVISOS_LUZES){
       if(a.epoca && a.epoca !== epocaAtual(now)) continue;
+      aplicarHoraSol(a, now);
       const segAgora = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
       const ini = a.hora * 3600 + a.minuto * 60 - (a.antecedenciaSeg || 0);
       const fim = a.hora * 3600 + a.minuto * 60 + a.duracaoSeg;
